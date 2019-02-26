@@ -1,4 +1,3 @@
-import csv
 import json
 import os
 import sys
@@ -6,6 +5,8 @@ import sys
 import click
 from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
+
+from .dbobjects import Schema, Table
 
 root_location = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,12 +27,17 @@ def cli():
 @click.option('--ddls', help='The ddl directory', type=click.Path(exists=True), required=True)
 def table(schema, table, ddls):
   """Read table definition"""
-  with open(os.path.join(ddls, '{}.csv'.format(table))) as table_file:
-    rows = list(csv.DictReader(table_file, delimiter=';'))
+  tbl = Table.read(os.path.join(ddls, schema, '{}.csv'.format(table)))
+  print(tbl)
+  tbl.print_table()
 
-  print(list(rows[0].keys()))
-  for row in rows:
-    print(list(row.values()))
+@cli.command()
+@click.option('--schema', help='The schema name')
+@click.option('--ddls', help='The ddl directory', type=click.Path(exists=True), required=True)
+def schema(schema, ddls):
+  """Read schema content"""
+  sch = Schema.read(os.path.join(ddls, schema))
+  print(sch)
+  sch.print_schema()
 
-  # click.secho("{}".format('Hello World!'), file=sys.stderr, fg='cyan')
   
