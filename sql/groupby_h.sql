@@ -1,4 +1,4 @@
-#Hub that uses GROUP BY ON bk
+--Hub that uses GROUP BY ON bk
 CREATE OR REPLACE VIEW groupby_h AS
 SELECT SOCIAL_SECURITY_NUMBER AS customer_key ,
        SOCIAL_SECURITY_NUMBER ,

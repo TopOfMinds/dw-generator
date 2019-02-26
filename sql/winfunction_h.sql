@@ -1,9 +1,9 @@
-#Hub created using window functions, simular functionality as in a sattelite 
+--Hub created using window functions, simular functionality as in a sattelite
 CREATE OR REPLACE VIEW winfunction_h AS
 SELECT res1.SOCIAL_SECURITY_NUMBER AS customer_key ,
        res1.SOCIAL_SECURITY_NUMBER ,
        'edge' AS REC_SRC ,
-       res1._SDC_RECEIVED_AT
+       res1._SDC_RECEIVED_AT AS LOAD_DTS
 FROM
   (SELECT SOCIAL_SECURITY_NUMBER ,
           _SDC_RECEIVED_AT ,
