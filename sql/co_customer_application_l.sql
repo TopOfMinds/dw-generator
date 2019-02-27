@@ -17,4 +17,5 @@ SELECT
 	,'edge' AS rec_src
 FROM src_edge.CUSTOMER 
 WHERE is_co = true
-AND active <> false);
+AND active <> false
+);
