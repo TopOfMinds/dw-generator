@@ -1,19 +1,18 @@
 /* 
- View contains logic for calculating the correct relationship between application and co_customer.
- View only contain relationships where the application is active status is true and co_in is true.
+ View only contain relationships where the application is active status is true and co_in is null.
  */
-CREATE OR REPLACE VIEW DV.CO_CUSTOMER_APPLICATION_L 
+CREATE OR REPLACE VIEW DV.CUSTOMER_APPLICATION_L 
 AS 
 
 SELECT 
-	co_customer_application_key
+	customer_application_key
 	,customer_key
 	,application_key
 	,load_dts
 	,rec_src
 FROM (
 	  SELECT 
-			customer_key||'|'||application_key AS co_customer_application_key
+			customer_key||'|'||application_key AS customer_application_key
 			,load_dts
 			,customer_key
 			,application_key
@@ -24,13 +23,13 @@ FROM (
 		   FROM (		
 				  SELECT
 						social_security_number AS customer_key
-						,id -1 AS application_key
+						,id AS application_key
 						,_SDC_RECEIVED_AT AS load_dts
 						,'edge' AS rec_src
 						,created AS eff_ts
 					FROM 
 						src_edge.CUSTOMER 
-					WHERE is_co = true
+					WHERE is_co IS null
 					AND active <> FALSE
 			)q
 )res
