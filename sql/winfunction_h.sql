@@ -1,3 +1,4 @@
+--Denna är temporär funkar inte just nu
 --Hub created using window functions, simular functionality as in a sattelite
 CREATE OR REPLACE VIEW winfunction_h AS
 SELECT res1.SOCIAL_SECURITY_NUMBER AS customer_key ,
