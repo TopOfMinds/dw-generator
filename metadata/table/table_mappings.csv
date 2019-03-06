@@ -1,0 +1,4 @@
+source_schema;source_table;source_filter;target_schema;target_table
+
+src_edge;customer;;dv;application_h
+src_edge;customer;;dv;customer_h
