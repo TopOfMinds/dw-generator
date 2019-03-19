@@ -3,6 +3,22 @@ from glob import glob
 from os.path import join
 from pathlib import PurePath
 
+class Column:
+  def __init__(self, name, type_, parent):
+    self.name = name
+    self.type = type_
+    self.parent = parent
+
+  @property
+  def full_name(self):
+    return "{}.{}".format(self.parent.full_name, self.name)
+
+  def __str__(self):
+    return "{}: {}".format(self.name, self.type)
+
+class Columns(list):
+  pass
+
 class Table:
   def __init__(self, schema, name, columns, path):
     self.schema = schema
@@ -15,17 +31,24 @@ class Table:
     p = PurePath(path)
     table = p.stem
     schema = p.parts[-2]
-    with open(path) as table_file:
-      columns = list(csv.DictReader(table_file, delimiter=';'))
-    return Table(schema, table, columns, path)
+    table = Table(schema, table, None, path)
+    # The table defs are saved as utf-8 BOM, which they shouldn't, and this is handled by utf-8-sig
+    with open(path, encoding='utf-8-sig') as table_file:
+      orig_columns = list(csv.DictReader(table_file, delimiter=','))
+    columns = [Column(column['name'], column['type'], table) for column in orig_columns]
+    table.columns = columns
+    return table
+
+  @property
+  def full_name(self):
+    return "{}.{}".format(self.schema, self.name)
 
   def __str__(self):
-    return "{}.{}: {}".format(self.schema, self.name, self.path)
+    return "{}: {}".format(self.full_name, self.path)
 
   def print_table(self):
-    print(list(self.columns[0].keys()))
     for column in self.columns:
-      print(list(column.values()))
+      print(column.full_name)
 
 class Schema:
   def __init__(self, name, tables, path):
