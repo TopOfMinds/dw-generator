@@ -64,7 +64,11 @@ class ColumnMappings:
       if mapping['src_schema'] == schema and mapping['src_table'] == table and mapping['src_column'] == column
     ])
 
-  def to_column(self, schema, table, column):
+  def to_column(self, schema=None, table=None, column=None):
+    if isinstance(column, Column):
+      schema = column.parent.schema
+      table = column.parent.name
+      column = column.name
     return ColumnMappings([
       mapping for mapping in self.column_mappings 
       if mapping['tgt_schema'] == schema and mapping['tgt_table'] == table and mapping['tgt_column'] == column

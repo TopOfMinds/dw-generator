@@ -1,12 +1,13 @@
 import json
 import os
 import sys
+from pathlib import Path
 
 import click
 from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
 
-from .dbobjects import Schema, Table, create_typed_table
+from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite
 from .mappings import TableMappings, ColumnMappings
 
 root_location = os.path.abspath(os.path.dirname(__file__))
@@ -23,8 +24,8 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--schema', help='The schema name')
-@click.option('--table', help='The table name')
+@click.option('--schema', help='The schema name', required=True)
+@click.option('--table', help='The table name', required=True)
 @click.option('--ddls', help='The ddl directory', type=click.Path(exists=True), required=True)
 def table(schema, table, ddls):
   """Read table definition"""
@@ -33,7 +34,7 @@ def table(schema, table, ddls):
   tbl.print_table()
 
 @cli.command()
-@click.option('--schema', help='The schema name')
+@click.option('--schema', help='The schema name', required=True)
 @click.option('--ddls', help='The ddl directory', type=click.Path(exists=True), required=True)
 def schema(schema, ddls):
   """Read schema content"""
@@ -94,3 +95,36 @@ def mapping_targets(mappings):
     typed_table = create_typed_table(table)
     if typed_table:
       print(typed_table)
+
+@cli.command()
+@click.option('--mappings', help='The mappings directory', type=click.Path(exists=True), required=True)
+@click.option('--target', help='Mappings to schema.table')
+def generate_view(mappings, target):
+  """Generate view SQl for a table"""
+  mappings_path = Path(mappings)
+  tm = TableMappings.read(mappings_path / 'table')
+  cm = ColumnMappings.read(mappings_path / 'column')
+  tables = cm.target_tables()
+  if target:
+    schema_name, table_name = target.split('.')
+    tables = [table for table in tables if table.schema == schema_name and table.name == table_name]
+  for table in tables:
+    target_table = create_typed_table(table)
+    print(target_table)
+    source_tables = tm.to_table(target_table.schema, target_table.name).table_mappings
+    source_column_mappings = cm.to_table(target_table.schema, target_table.name)
+    # source_column_mappings.print_mappings()
+    for source_table in source_tables:
+      print('\t{source_schema}.{source_table}, filter={source_filter}'.format(**source_table))
+      target_column_mappings = source_column_mappings.from_table(source_table['source_schema'], source_table['source_table'])
+      source_columns = target_column_mappings.column_mappings
+      if isinstance(target_table, Hub):
+        target_column_mappings.to_column(column=target_table.key).print_mappings()
+        for column in target_table.business_keys:
+          target_column_mappings.to_column(column=column).print_mappings()
+        target_column_mappings.to_column(column=target_table.load_dts).print_mappings()
+        target_column_mappings.to_column(column=target_table.rec_src).print_mappings()
+      else:
+        for source_column in source_columns:
+          print('\t\t{src_schema}.{src_table}.{src_column}, transformation={transformation}'.format(**source_column))
+
