@@ -25,18 +25,19 @@ class Table:
     self.name = name
     self.columns = columns
     self.path = path
+    for column in columns:
+      column.parent = self
   
   @classmethod
   def read(cls, path):
     p = PurePath(path)
-    table = p.stem
-    schema = p.parts[-2]
-    table = Table(schema, table, None, path)
+    table_name = p.stem
+    schema_name = p.parts[-2]
     # The table defs are saved as utf-8 BOM, which they shouldn't, and this is handled by utf-8-sig
     with open(path, encoding='utf-8-sig') as table_file:
       orig_columns = list(csv.DictReader(table_file, delimiter=','))
-    columns = [Column(column['name'], column['type'], table) for column in orig_columns]
-    table.columns = columns
+    columns = [Column(column['name'], column['type'], None) for column in orig_columns]
+    table = Table(schema_name, table_name, columns, path)
     return table
 
   @property
@@ -44,7 +45,7 @@ class Table:
     return "{}.{}".format(self.schema, self.name)
 
   def __str__(self):
-    return "{}: {}".format(self.full_name, self.path)
+    return "{}({})".format(self.full_name, ", ".join(str(c) for c in self.columns))
 
   def print_table(self):
     for column in self.columns:
