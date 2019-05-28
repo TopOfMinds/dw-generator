@@ -6,7 +6,7 @@ import click
 from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
 
-from .dbobjects import Schema, Table
+from .dbobjects import Schema, Table, create_typed_table
 from .mappings import TableMappings, ColumnMappings
 
 root_location = os.path.abspath(os.path.dirname(__file__))
@@ -90,5 +90,7 @@ def mapping_targets(mappings):
   """Infer target tables from column mappings"""
   m = ColumnMappings.read(mappings)
   tables = m.target_tables()
-  for column in tables:
-    print(column)
+  for table in tables:
+    typed_table = create_typed_table(table)
+    if typed_table:
+      print(typed_table)
