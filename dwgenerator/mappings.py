@@ -74,6 +74,18 @@ class ColumnMappings:
       if mapping['tgt_schema'] == schema and mapping['tgt_table'] == table and mapping['tgt_column'] == column
     ])
 
+  def to_one_column(self, column):
+    column_mappings = self.to_column(column.parent.schema, column.parent.name, column.name).column_mappings
+    if len(column_mappings) > 0:
+      column_mapping = column_mappings[0]
+      return {
+        'source': '{src_schema}.{src_table}.{src_column}'.format(**column_mapping),
+        'transformation': column_mapping['transformation']
+      }
+    else:
+      return None
+
+
   def source_tables(self):
     schema_table_name = lambda m: [m['src_schema'], m['src_table']]
     table_groups = groupby(sorted(self.column_mappings, key=schema_table_name), key=schema_table_name)

@@ -119,11 +119,19 @@ def generate_view(mappings, target):
       target_column_mappings = source_column_mappings.from_table(source_table['source_schema'], source_table['source_table'])
       source_columns = target_column_mappings.column_mappings
       if isinstance(target_table, Hub):
-        target_column_mappings.to_column(column=target_table.key).print_mappings()
-        for column in target_table.business_keys:
-          target_column_mappings.to_column(column=column).print_mappings()
-        target_column_mappings.to_column(column=target_table.load_dts).print_mappings()
-        target_column_mappings.to_column(column=target_table.rec_src).print_mappings()
+        target_column_names = [target_table.key] + target_table.business_keys + [target_table.load_dts, target_table.rec_src]
+      if isinstance(target_table, Link):
+        target_column_names = [target_table.root_key] + target_table.keys + [target_table.load_dts, target_table.rec_src]
+      if isinstance(target_table, Satellite):
+        target_column_names = [target_table.key] + target_table.attributes + [target_table.load_dts, target_table.rec_src]
+      if target_column_names: 
+        for column in target_column_names:
+          if column:
+            source_map = target_column_mappings.to_one_column(column)
+            if source_map:
+              print('\t\t{target} <= ({transformation}) <= {source}'.format(target=column, **source_map))
+            else:
+              print('\t\t{target} <= None'.format(target=column))
       else:
         for source_column in source_columns:
           print('\t\t{src_schema}.{src_table}.{src_column}, transformation={transformation}'.format(**source_column))
