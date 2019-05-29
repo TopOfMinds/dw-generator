@@ -8,7 +8,7 @@ from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
 
 from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite
-from .mappings import TableMappings, ColumnMappings
+from .mappings import TableMappings, ColumnMappings, Mappings
 
 root_location = os.path.abspath(os.path.dirname(__file__))
 
@@ -105,18 +105,19 @@ def generate_view(mappings, target):
   tm = TableMappings.read(mappings_path / 'table')
   cm = ColumnMappings.read(mappings_path / 'column')
   tables = cm.target_tables()
+  mappings = Mappings(tm, cm, tables + cm.source_tables())
   if target:
     schema_name, table_name = target.split('.')
     tables = [table for table in tables if table.schema == schema_name and table.name == table_name]
-  for table in tables:
-    target_table = create_typed_table(table)
-    print(target_table)
-    source_tables = tm.to_table(target_table.schema, target_table.name).table_mappings
+  for target_table in tables:
+    print(target_table.full_name)
     source_column_mappings = cm.to_table(target_table.schema, target_table.name)
-    # source_column_mappings.print_mappings()
-    for source_table in source_tables:
-      print('\t{source_schema}.{source_table}, filter={source_filter}'.format(**source_table))
-      target_column_mappings = source_column_mappings.from_table(source_table['source_schema'], source_table['source_table'])
+    for source_table in mappings.source_tables(target_table):
+      print('\t{}: filter={}'.format(
+        source_table.full_name,
+        mappings.filter(source_table, target_table)
+      ))
+      target_column_mappings = source_column_mappings.from_table(*source_table.full_name.split('.'))
       source_columns = target_column_mappings.column_mappings
       if isinstance(target_table, Hub):
         target_column_names = [target_table.key] + target_table.business_keys + [target_table.load_dts, target_table.rec_src]

@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 from itertools import groupby
-from .dbobjects import Column, Table, Schema
+from .dbobjects import Column, Table, Schema, create_typed_table
 
 class TableMappings:
   def __init__(self, table_mappings):
@@ -90,26 +90,51 @@ class ColumnMappings:
     schema_table_name = lambda m: [m['src_schema'], m['src_table']]
     table_groups = groupby(sorted(self.column_mappings, key=schema_table_name), key=schema_table_name)
     tables = [
-      Table(
+      create_typed_table(Table(
         key[0],
         key[1],
         [Column(column, None, None) for column in set(m['src_column'] for m in group)],
         None
-      ) for key, group in table_groups]
+      )) for key, group in table_groups]
     return tables
 
   def target_tables(self):
     schema_table_name = lambda m: [m['tgt_schema'], m['tgt_table']]
     table_groups = groupby(sorted(self.column_mappings, key=schema_table_name), key=schema_table_name)
     tables = [
-      Table(
+      create_typed_table(Table(
         key[0],
         key[1],
         [Column(column, None, None) for column in set(m['tgt_column'] for m in group)],
         None
-      ) for key, group in table_groups]
+      )) for key, group in table_groups]
     return tables
 
   def print_mappings(self):
     for mapping in self.column_mappings:
       print('{src_schema}.{src_table}.{src_column}\t{transformation}\t{tgt_schema}.{tgt_table}.{tgt_column}'.format(**mapping))
+
+  
+class Mappings:
+  def __init__(self, table_mappings, column_mappings, tables):
+    self.table_mappings = table_mappings
+    self.column_mappings = column_mappings
+    self.tables = tables
+    self._table_dict = dict((table.full_name, table) for table in tables)
+
+  def source_tables(self, target_table):
+    source_mappings = self.table_mappings.to_table(target_table.schema, target_table.name).table_mappings
+    source_table_names = ['{source_schema}.{source_table}'.format(**m) for m in source_mappings]
+    source_tables = [self._table_dict.get(table_name) for table_name in source_table_names]
+    return [source_table for source_table in source_tables if source_table]
+
+  def filter(self, source_table, target_table):
+    mappings = (self.table_mappings
+                .from_table(source_table.schema, source_table.name)
+                .to_table(target_table.schema, target_table.name)
+                .table_mappings)
+    try:
+      return mappings[0]['source_filter']
+    except IndexError:
+      return None
+
