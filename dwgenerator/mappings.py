@@ -1,7 +1,9 @@
-import csv
+import csv, re
 from pathlib import Path
 from itertools import groupby
 from .dbobjects import Column, Table, Schema, create_typed_table
+
+TRANSFORM_PARAM_RE = re.compile("\$(\d+)")
 
 class TableMappings:
   def __init__(self, table_mappings):
@@ -114,7 +116,16 @@ class ColumnMappings:
     for mapping in self.column_mappings:
       print('{src_schema}.{src_table}.{src_column}\t{transformation}\t{tgt_schema}.{tgt_table}.{tgt_column}'.format(**mapping))
 
-  
+
+def apply_transform(column_names, transform, prefix):
+  if prefix:
+    column_names = ["{}.{}".format(prefix, column_name) for column_name in column_names]
+  if transform:
+    params = TRANSFORM_PARAM_RE.findall(transform)
+    return TRANSFORM_PARAM_RE.sub(lambda s: column_names[int(s.group(1)) - 1], transform)
+  else:
+    return ';'.join(column_names)
+
 class Mappings:
   def __init__(self, table_mappings, column_mappings, tables):
     self.table_mappings = table_mappings
@@ -136,5 +147,19 @@ class Mappings:
     try:
       return mappings[0]['source_filter']
     except IndexError:
+      return None
+
+  def source_column(self, source_table, target_column, prefix=None):
+    if target_column:
+      target_table = target_column.parent
+      source_column_mappings = self.column_mappings.to_table(target_table.schema, target_table.name)
+      target_column_mappings = source_column_mappings.from_table(source_table.schema, source_table.name)
+      source_map = target_column_mappings.to_one_column(target_column)
+      if source_map:
+        result = apply_transform(source_map['source'].split(';'), source_map['transformation'], prefix)
+        return result
+      else:
+        return None
+    else:
       return None
 
