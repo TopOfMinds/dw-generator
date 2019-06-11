@@ -1,11 +1,11 @@
-import json
+import json, sys
 from pathlib import Path
 
 import click
 from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
 
-from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite
+from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
 from .mappings import TableMappings, ColumnMappings, Mappings
 
 root_location = Path(__file__).parent.resolve()
@@ -131,7 +131,8 @@ def generate_params(mappings, target):
 @cli.command()
 @click.option('--mappings', help='The mappings directory', type=click.Path(exists=True), required=True)
 @click.option('--target', help='Mappings to schema.table')
-def generate_view(mappings, target):
+@click.option('--out', help='Output directory')
+def generate_view(mappings, target, out):
   """Generate view SQl for a table"""
   mappings_path = Path(mappings)
   tm = TableMappings.read(mappings_path / 'table')
@@ -142,20 +143,34 @@ def generate_view(mappings, target):
     schema_name, table_name = target.split('.')
     tables = [table for table in tables if table.schema == schema_name and table.name == table_name]
   for target_table in tables:
-    print(target_table)
-    template_path = None
-    if isinstance(target_table, Hub):
-      template_path = 'hub_view.sql'
-    if isinstance(target_table, Link):
-      template_path = 'link_view.sql'
-    # if isinstance(target_table, Satellite):
-    #   template_path = 'satellite_view.sql'
-    if template_path:
-      template = env.get_template(template_path)
-      result = template.render(target_table=target_table, mappings=mappings)
-      print(result)
-    else:
-      print('Unknown table type', target_table)
+    try:
+      click.secho(str(target_table), file=sys.stderr, fg='cyan')
+      template_path = None
+      if isinstance(target_table, Hub):
+        template_path = 'hub_view.sql'
+      if isinstance(target_table, Link):
+        template_path = 'link_view.sql'
+      if isinstance(target_table, Satellite):
+        template_path = 'satellite_view.sql'
+      if template_path:
+        target_table.check()
+        mappings.check(target_table)
+        template = env.get_template(template_path)
+        sql = template.render(target_table=target_table, mappings=mappings)
+        if out:
+          outpath = Path(out) / target_table.schema / (target_table.name + '_v.sql')
+          click.secho(str(outpath), file=sys.stderr, fg='yellow')
+          with open(outpath, 'w') as outfile:
+            outfile.write(sql)
+        else:
+          print(sql)
+      else:
+        click.secho('Unknown table type: {}'.format(target_table), file=sys.stderr, fg='yellow')
+    except MetaDataError as e:
+        click.secho("Meta data error: {}".format(e), file=sys.stderr, fg='red')
+        # break
+    except MetaDataWarning as e:
+        click.secho("Meta data warning: {}".format(e), file=sys.stderr, fg='yellow')
 
 
     

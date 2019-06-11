@@ -1,7 +1,7 @@
 import csv, re
 from pathlib import Path
 from itertools import groupby
-from .dbobjects import Column, Table, Schema, create_typed_table
+from .dbobjects import Column, Table, Schema, create_typed_table, MetaDataError, MetaDataWarning
 
 TRANSFORM_PARAM_RE = re.compile("\$(\d+)")
 
@@ -81,7 +81,8 @@ class ColumnMappings:
     if len(column_mappings) > 0:
       column_mapping = column_mappings[0]
       return {
-        'source': '{src_schema}.{src_table}.{src_column}'.format(**column_mapping),
+        'source_full_name': '{src_schema}.{src_table}.{src_column}'.format(**column_mapping),
+        'source': '{src_column}'.format(**column_mapping),
         'transformation': column_mapping['transformation']
       }
     else:
@@ -107,7 +108,7 @@ class ColumnMappings:
       create_typed_table(Table(
         key[0],
         key[1],
-        [Column(column, None, None) for column in set(m['tgt_column'] for m in group)],
+        [Column(column, None, None) for column in dict.fromkeys(m['tgt_column'] for m in group)], # order preserving dedup
         None
       )) for key, group in table_groups]
     return tables
@@ -163,3 +164,26 @@ class Mappings:
     else:
       return None
 
+  def check(self, target_table):
+    source_mappings = self.table_mappings.to_table(target_table.schema, target_table.name).table_mappings
+    source_table_names = ['{source_schema}.{source_table}'.format(**m) for m in source_mappings]
+    if len(source_mappings) == 0:
+      raise MetaDataError('There is no table mappings to {target_table_name}'.format(
+        target_table_name=target_table.full_name
+      ))
+    source_tables = self.source_tables(target_table)
+    if len(source_tables) == 0:
+      raise MetaDataError('There is no column mappings to {target_table_name} from {source_table_names}'.format(
+        target_table_name=target_table.full_name,
+        source_table_names=', '.join(source_table_names)
+      ))
+    for source_table in source_tables:
+      # print(source_table.full_name)
+      for target_column in target_table.columns:
+        # print(target_column)
+        source_column = self.source_column(source_table, target_column)
+        # print(source_column)
+        if source_column == None:
+          raise MetaDataError('There is no mapping to {target_column_name} from {source_table_name}'.format(
+            target_column_name=target_column.full_name, source_table_name=source_table.full_name
+          ))

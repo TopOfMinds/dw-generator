@@ -3,44 +3,43 @@
 --   ======================================================================================
 
 {% set union_all = joiner("UNION ALL") %}
-
-CREATE OR REPLACE VIEW {{ target_table.name }}
+CREATE OR REPLACE VIEW {{ target_table.full_name }}
 AS
-SELECT 
-	{{ target_table.key.name }}
+SELECT
+  {{ target_table.key.name }}
   {% for target_business_key in target_table.business_keys %}
-	,{{ target_business_key.name }}
+  ,{{ target_business_key.name }}
   {% endfor %}
-	,{{ target_table.load_dts.name }}
-	,{{ target_table.rec_src.name }}
+  ,{{ target_table.load_dts.name }}
+  ,{{ target_table.rec_src.name }}
 FROM (
-	SELECT 
-		{{ target_table.key.name }}
+  SELECT
+    {{ target_table.key.name }}
     {% for target_business_key in target_table.business_keys %}
-		,{{ target_business_key.name }}
+    ,{{ target_business_key.name }}
     {% endfor %}
-		,{{ target_table.load_dts.name }}
-		,{{ target_table.rec_src.name }}
-		,row_number() over(PARTITION BY {{ target_table.key.name }} ORDER BY {{ target_table.load_dts.name }} asc) rn
-	FROM (
+    ,{{ target_table.load_dts.name }}
+    ,{{ target_table.rec_src.name }}
+    ,row_number() over(PARTITION BY {{ target_table.key.name }} ORDER BY {{ target_table.load_dts.name }} asc) rn
+  FROM (
     {% for source_table in mappings.source_tables(target_table) %}
     {% set source_filter = mappings.filter(source_table, target_table) %}
     {{ union_all() }}
-		SELECT 
-			{{ mappings.source_column(source_table, target_table.key) }} AS {{ target_table.key.name }}
+    SELECT
+      {{ mappings.source_column(source_table, target_table.key) }} AS {{ target_table.key.name }}
       {% for target_business_key in target_table.business_keys %}
-			,{{ mappings.source_column(source_table, target_business_key) }} AS {{ target_business_key.name }}
+      ,{{ mappings.source_column(source_table, target_business_key) }} AS {{ target_business_key.name }}
       {% endfor %}
-			,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
-			,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
-		FROM 
-			{{ source_table.full_name }}
+      ,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
+      ,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
+    FROM
+      {{ source_table.full_name }}
     {% if source_filter %}
     WHERE
       {{ source_filter }}
     {% endif %}
     {% endfor %}
-	)
+  )
 )
 WHERE rn = 1
 ;

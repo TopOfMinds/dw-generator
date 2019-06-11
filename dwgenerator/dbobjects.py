@@ -3,6 +3,12 @@ from glob import glob
 from os.path import join
 from pathlib import PurePath
 
+class MetaDataError(Exception):
+    pass
+
+class MetaDataWarning(Warning):
+    pass
+
 class Column:
   def __init__(self, name, type_, parent):
     self.name = name
@@ -84,6 +90,7 @@ class Schema:
 class DataVaultObject(Table):
   load_dts_name = 'load_dts'
   rec_src_name = 'rec_src'
+  column_role_names = [load_dts_name, rec_src_name]
   def __init__(self, table):
     super().__init__(table.schema, table.name, table.columns, table.path)
 
@@ -95,7 +102,21 @@ class DataVaultObject(Table):
   def rec_src(self):
     return self[self.rec_src_name]
 
+  def check(self):
+    for column_name in self.column_role_names:
+      column = getattr(self, column_name)
+      if column == None:
+        raise MetaDataError('{table} is a {type} and must have a {column_name} column'.format(
+          table=self.full_name, type=self.table_type, column_name=column_name
+        ))
+      if isinstance(column, list) and len(column) == 0:
+        raise MetaDataError('{table} is a {type} and must have at lest one {column_name} column'.format(
+          table=self.full_name, type=self.table_type, column_name=column_name
+        ))
+
 class Hub(DataVaultObject):
+  table_type = 'hub'
+  column_role_names = DataVaultObject.column_role_names + ['key', 'business_keys']
   def __init__(self, table):
     super().__init__(table)
     self.key_name = re.sub(r'_h$', '_key', self.name)
@@ -121,6 +142,8 @@ class Hub(DataVaultObject):
     )
 
 class Link(DataVaultObject):
+  table_type='link'
+  column_role_names = DataVaultObject.column_role_names + ['root_key', 'keys']
   def __init__(self, table):
     super().__init__(table)
     self.root_key_name = self.name + '_key'
@@ -143,6 +166,8 @@ class Link(DataVaultObject):
     )
 
 class Satellite(DataVaultObject):
+  table_type='satellite'
+  column_role_names = DataVaultObject.column_role_names + ['key', 'attributes']
   def __init__(self, table):
     super().__init__(table)
 
