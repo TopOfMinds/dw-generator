@@ -76,18 +76,13 @@ class ColumnMappings:
       if mapping['tgt_schema'] == schema and mapping['tgt_table'] == table and mapping['tgt_column'] == column
     ])
 
-  def to_one_column(self, column):
+  def to_column_list(self, column):
     column_mappings = self.to_column(column.parent.schema, column.parent.name, column.name).column_mappings
-    if len(column_mappings) > 0:
-      column_mapping = column_mappings[0]
-      return {
-        'source_full_name': '{src_schema}.{src_table}.{src_column}'.format(**column_mapping),
-        'source': '{src_column}'.format(**column_mapping),
-        'transformation': column_mapping['transformation']
-      }
-    else:
-      return None
-
+    return [{
+      'source_full_name': '{src_schema}.{src_table}.{src_column}'.format(**column_mapping),
+      'source': '{src_column}'.format(**column_mapping),
+      'transformation': column_mapping['transformation']
+    } for column_mapping in column_mappings]
 
   def source_tables(self):
     schema_table_name = lambda m: [m['src_schema'], m['src_table']]
@@ -150,17 +145,24 @@ class Mappings:
     except IndexError:
       return None
 
-  def source_column(self, source_table, target_column, prefix=None):
+  def source_columns(self, source_table, target_column, prefix=None):
     if target_column:
       target_table = target_column.parent
       source_column_mappings = self.column_mappings.to_table(target_table.schema, target_table.name)
       target_column_mappings = source_column_mappings.from_table(source_table.schema, source_table.name)
-      source_map = target_column_mappings.to_one_column(target_column)
-      if source_map:
-        result = apply_transform(source_map['source'].split(';'), source_map['transformation'], prefix)
-        return result
-      else:
-        return None
+      source_maps = target_column_mappings.to_column_list(target_column)
+      result = [
+        apply_transform(source_map['source'].split(';'), source_map['transformation'], prefix)
+        for source_map in source_maps
+      ]
+      return result
+    else:
+      return []
+
+  def source_column(self, source_table, target_column, prefix=None):
+    source_columns = self.source_columns(source_table, target_column, prefix)
+    if len(source_columns) > 0:
+      return source_columns[0]
     else:
       return None
 
