@@ -3,7 +3,7 @@ from pathlib import Path
 from itertools import groupby
 from .dbobjects import Column, Table, Schema, create_typed_table, MetaDataError, MetaDataWarning
 
-TRANSFORM_PARAM_RE = re.compile("\$(\d+)")
+TRANSFORM_PARAM_RE = re.compile(r"$(\d+)")
 
 class TableMappings:
   def __init__(self, table_mappings):
@@ -122,7 +122,7 @@ def apply_transform(column_names, transform, prefix):
   if prefix:
     column_names = ["{}.{}".format(prefix, column_name) for column_name in column_names]
   if transform:
-    params = TRANSFORM_PARAM_RE.findall(transform)
+    # params = TRANSFORM_PARAM_RE.findall(transform)
     return TRANSFORM_PARAM_RE.sub(lambda s: column_names[int(s.group(1)) - 1], transform)
   else:
     return ';'.join(column_names)

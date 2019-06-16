@@ -1,4 +1,4 @@
-import json, sys
+import json, sys, csv
 from pathlib import Path
 
 import click
@@ -129,15 +129,24 @@ def generate_params(mappings, target):
               print('\t\t{target} <= None'.format(target=column))
 
 @cli.command()
-@click.option('--mappings', help='The mappings directory', type=click.Path(exists=True), required=True)
+@click.option('--metadata', help='The metadata directory', type=click.Path(exists=True), default='metadata', show_default=True)
 @click.option('--target', help='Mappings to schema.table')
 @click.option('--out', help='Output directory')
-def generate_view(mappings, target, out):
+def generate_view(metadata, target, out):
   """Generate view SQl for a table"""
-  mappings_path = Path(mappings)
+  metadata_path = Path(metadata)
+  mappings_path = metadata_path / 'mapping'
   tm = TableMappings.read(mappings_path / 'table')
   cm = ColumnMappings.read(mappings_path / 'column')
-  tables = cm.target_tables()
+  target_tables_path = metadata_path / 'target_tables.csv'
+  with open(target_tables_path, encoding='utf-8') as target_tables_file:
+    target_tables = list(csv.DictReader(target_tables_file, dialect=csv.excel))
+  table_def_path = metadata_path / 'table_def'
+  target_table_paths = [
+    table_def_path / target_table['schema'] / (target_table['table'] + '.csv')
+    for target_table in target_tables if target_table['generate'] == 'true'
+  ]
+  tables = [create_typed_table(Table.read(target_table_path)) for target_table_path in target_table_paths]
   mappings = Mappings(tm, cm, tables + cm.source_tables())
   if target:
     schema_name, table_name = target.split('.')
@@ -159,7 +168,7 @@ def generate_view(mappings, target, out):
         sql = template.render(target_table=target_table, mappings=mappings)
         if out:
           outpath = Path(out) / target_table.schema / (target_table.name + '_v.sql')
-          click.secho(str(outpath), file=sys.stderr, fg='yellow')
+          click.secho(str(outpath), file=sys.stderr, fg='white')
           with open(outpath, 'w') as outfile:
             outfile.write(sql)
         else:
@@ -171,6 +180,3 @@ def generate_view(mappings, target, out):
         # break
     except MetaDataWarning as e:
         click.secho("Meta data warning: {}".format(e), file=sys.stderr, fg='yellow')
-
-
-    

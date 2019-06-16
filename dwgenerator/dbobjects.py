@@ -42,7 +42,7 @@ class Table:
     # The table defs are saved as utf-8 BOM, which they shouldn't, and this is handled by utf-8-sig
     with open(path, encoding='utf-8-sig') as table_file:
       orig_columns = list(csv.DictReader(table_file, delimiter=','))
-    columns = [Column(column['name'], column['type'], None) for column in orig_columns]
+    columns = [Column(column['name'].lower(), column['type'], None) for column in orig_columns]
     table = Table(schema_name, table_name, columns, path)
     return table
 
@@ -77,8 +77,6 @@ class Schema:
     table_paths = glob(tables_glob)
     tables = [Table.read(table_path) for table_path in table_paths]
     return Schema(schema, tables, path)
-    for table in tables:
-      print(table)
 
   def __str__(self):
     return "{}: {}".format(self.name, self.path)
@@ -88,6 +86,7 @@ class Schema:
       print(table)
 
 class DataVaultObject(Table):
+  table_type='dv'
   load_dts_name = 'load_dts'
   rec_src_name = 'rec_src'
   column_role_names = [load_dts_name, rec_src_name]
