@@ -22,9 +22,10 @@ def cli():
 
 @cli.command()
 @click.option('--metadata', help='The metadata directory', type=click.Path(exists=True), default='metadata', show_default=True)
+@click.option('--dbtype', help='The target database type', default='snowflake', show_default=True)
 @click.option('--target', help='Mappings to schema.table')
 @click.option('--out', help='Output directory')
-def generate_view(metadata, target, out):
+def generate_view(metadata, dbtype, target, out):
   """Generate view SQl for a table"""
   metadata_path = Path(metadata)
   mappings_path = metadata_path / 'mapping'
@@ -56,7 +57,7 @@ def generate_view(metadata, target, out):
       if template_path:
         target_table.check()
         mappings.check(target_table)
-        template = env.get_template(template_path)
+        template = env.get_template(dbtype + '/' + template_path)
         sql = template.render(target_table=target_table, mappings=mappings)
         if out:
           outpath = Path(out) / target_table.schema / (target_table.name + '_v.sql')
