@@ -103,7 +103,6 @@ Example:
 
 | src_schema | src_table | src_column | transformation | tgt_schema | tgt_table | tgt_column |
 | ---------- | --------- | ---------- | -------------- | ---------- | --------- | ---------- |
-|
 | src_cm | person_detail | id | | dv | customer_h | customer_key |
 | src_cm | person_detail | id | | dv | customer_h | customer_id |
 | src_cm | person_detail | now() | | dv | customer_h | load_dts |
