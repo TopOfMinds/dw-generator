@@ -8,3 +8,8 @@
 ## Run the CLI
 
 `$ dwgenerator --help`
+
+## Generate views
+
+`$ dwgenerator generate-view --dbtype snowflake --out sql/dw/`
+
