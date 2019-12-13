@@ -26,7 +26,7 @@ def cli():
 @click.option('--target', help='Mappings to schema.table')
 @click.option('--out', help='Output directory')
 def generate_view(metadata, dbtype, target, out):
-  """Generate view SQl for a table"""
+  """Generate view SQL for a table"""
   metadata_path = Path(metadata)
   mappings_path = metadata_path / 'mapping'
   tm = TableMappings.read(mappings_path / 'table')
