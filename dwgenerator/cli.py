@@ -25,7 +25,8 @@ def cli():
 @click.option('--dbtype', help='The target database type', default='snowflake', show_default=True)
 @click.option('--target', help='Mappings to schema.table')
 @click.option('--out', help='Output directory')
-def generate_view(metadata, dbtype, target, out):
+@click.option('-v', '--verbose', help='Print extra information', count=True)
+def generate_view(metadata, dbtype, target, out, verbose):
   """Generate view SQL for a table"""
   metadata_path = Path(metadata)
   mappings_path = metadata_path / 'mapping'
@@ -46,7 +47,8 @@ def generate_view(metadata, dbtype, target, out):
     tables = [table for table in tables if table.schema == schema_name and table.name == table_name]
   for target_table in tables:
     try:
-      click.secho(str(target_table), file=sys.stderr, fg='cyan')
+      if verbose: 
+        click.secho(str(target_table), file=sys.stderr, fg='cyan')
       template_path = None
       if isinstance(target_table, Hub):
         template_path = 'hub_view.sql'
@@ -61,7 +63,7 @@ def generate_view(metadata, dbtype, target, out):
         sql = template.render(target_table=target_table, mappings=mappings)
         if out:
           outpath = Path(out) / target_table.schema / (target_table.name + '_v.sql')
-          click.secho(str(outpath), file=sys.stderr, fg='white')
+          click.secho(str(outpath), file=sys.stderr, fg='green')
           with open(outpath, 'w') as outfile:
             outfile.write(sql)
         else:
