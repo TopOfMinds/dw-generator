@@ -24,5 +24,6 @@ FROM {{ source_table.schema }}__{{ source_table.name }}
 {% if source_filter %}
 WHERE {{ source_filter }}
 {% endif %}
+PARTITION BY {{ target_table.root_key.name }}
 ;
 {% endfor %}

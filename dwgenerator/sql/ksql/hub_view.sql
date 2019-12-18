@@ -25,5 +25,6 @@ FROM
 WHERE
   {{ source_filter }}
 {% endif %}
+PARTITION BY {{ target_table.key.name }}
 ;
 {% endfor %}
