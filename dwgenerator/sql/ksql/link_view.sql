@@ -12,7 +12,6 @@ AS
 INSERT INTO {{ target_table.schema }}__{{ target_table.name }}
 {% endif %}
 {% set concat = joiner(" + '|' + ") %}
-{% set concat2 = joiner(" + '|' + ") %}
 SELECT
   {%+ for key in target_table.keys %}{{ concat() }}CAST({{ mappings.source_column(source_table, key) }} AS VARCHAR){% endfor %} AS {{ target_table.root_key.name }}
   {% for key in target_table.keys %}
@@ -24,6 +23,7 @@ FROM {{ source_table.schema }}__{{ source_table.name }}
 {% if source_filter %}
 WHERE {{ source_filter }}
 {% endif %}
-PARTITION BY {%+ for key in target_table.keys %}{{ concat2() }}CAST({{ mappings.source_column(source_table, key) }} AS VARCHAR){% endfor %}
+{% set concat = joiner(" + '|' + ") %}
+PARTITION BY {%+ for key in target_table.keys %}{{ concat() }}CAST({{ mappings.source_column(source_table, key) }} AS VARCHAR){% endfor %}
 ;
 {% endfor %}
