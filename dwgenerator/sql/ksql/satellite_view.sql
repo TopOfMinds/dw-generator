@@ -5,6 +5,7 @@
 {% for source_table in mappings.source_tables(target_table) %}
 {% set source_filter = mappings.filter(source_table, target_table) %}
 {% set concat = joiner(" + '|' + ") %}
+{% set concat2 = joiner(" + '|' + ") %}
 
 {% if loop.first %}
 CREATE STREAM {{ target_table.schema }}__{{ target_table.name }}
@@ -26,6 +27,6 @@ FROM
 WHERE
   {{ source_filter }}
 {% endif %}
-PARTITION BY content
+PARTITION BY {{ mappings.source_column(source_table, target_table.key) }}{{ concat() }}{% for attribute in target_table.attributes %}{{ concat2() }} CAST({{ mappings.source_column(source_table, attribute) }} AS VARCHAR){% endfor %}
 ;
 {% endfor %}
