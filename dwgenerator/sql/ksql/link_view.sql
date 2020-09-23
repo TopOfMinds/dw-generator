@@ -17,13 +17,12 @@ SELECT
   {% for key in target_table.keys %}
   ,CAST({{ mappings.source_column(source_table, key) }} AS VARCHAR) AS {{ key.name }}
   {% endfor %}
-  ,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
   ,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
 FROM {{ source_table.schema }}__{{ source_table.name }}
 {% if source_filter %}
 WHERE {{ source_filter }}
 {% endif %}
 {% set concat = joiner(" + '|' + ") %}
-PARTITION BY {%+ for key in target_table.keys %}{{ concat() }}CAST({{ mappings.source_column(source_table, key) }} AS VARCHAR){% endfor %}
+PARTITION BY MD5({%+ for key in target_table.keys %}{{ concat() }}CAST({{ mappings.source_column(source_table, key) }} AS VARCHAR){% endfor %})
 ;
 {% endfor %}

@@ -14,8 +14,7 @@ INSERT INTO {{ target_table.schema }}__{{ target_table.name }}
 {% endif %}
 SELECT
   {{ mappings.source_column(source_table, target_table.key) }} AS {{ target_table.key.name }}
-  ,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
-  ,{{ mappings.source_column(source_table, target_table.key) }}{{ concat() }}{% for attribute in target_table.attributes %}{{ concat() }} CAST({{ mappings.source_column(source_table, attribute) }} AS VARCHAR){% endfor %} AS content
+  ,MD5({{ mappings.source_column(source_table, target_table.key) }}{{ concat() }}{% for attribute in target_table.attributes %}{{ concat() }} CAST({{ mappings.source_column(source_table, attribute) }} AS VARCHAR){% endfor %}) AS content
   {% for attribute in target_table.attributes %}
   ,{{ mappings.source_column(source_table, attribute) }} AS {{ attribute.name }}
   {% endfor %}
@@ -27,6 +26,6 @@ WHERE
   {{ source_filter }}
 {% endif %}
 {% set concat = joiner(" + '|' + ") %}
-PARTITION BY {{ mappings.source_column(source_table, target_table.key) }}{{ concat() }}{% for attribute in target_table.attributes %}{{ concat() }} CAST({{ mappings.source_column(source_table, attribute) }} AS VARCHAR){% endfor %}
+PARTITION BY MD5({{ mappings.source_column(source_table, target_table.key) }}{{ concat() }}{% for attribute in target_table.attributes %}{{ concat() }} CAST({{ mappings.source_column(source_table, attribute) }} AS VARCHAR){% endfor %})
 ;
 {% endfor %}
