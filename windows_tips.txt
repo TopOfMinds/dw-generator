@@ -1,0 +1,48 @@
+DW GENERATOR TIPS FOR WINDOWS
+
+- Download the dwgenerator from https://github.com/TopOfMinds/dw-generator. You can download a zip from the green "CODE" button to the top right. 
+- Install Python: https://www.python.org/downloads/
+- After installing, add the path to Pyhton.exe and the Scripts folder to your system environment PATH variable. If you are unable to do this,
+you must specify the full path to both python.exe and to the Scripts folder (where the dwgenerator will be installed) each time you want to run it. 
+- Unzip the dwgenerator download. The unzipped path will be: <dir>\dw-generator-master\dw-generator-master\
+- Standing in the above directory, run the command "python (or full path to python.exe if no variables) -m pip install -e ." 
+The additional -e before the . installs it in developer mode which is useful if you want to make additions to the dwgenerator. 
+
+You have now installed the dwgenerator!
+
+To test it is working, just type "dwgenerator --help" and see you get the help command listed. If you don't have a path variable set to your Scripts
+folder in python install directory, you need to instead type "<path to Python Scripts folder>\dwgenerator.exe --help"
+
+Next you need to set up the folder structure for your metadata mappings and the generated sql. Do this in your code repository project folder
+(whatever you are using where you are) - not in your python or dwgenerator folders. 
+The folder structure to set up is:
+<project name>/
+    metadata/
+        target_tables.csv
+        table_def/
+            <schema name 1>/
+                <table name 1>.csv
+                ...
+                <table name m>.csv
+            ...
+            <schema name n>/
+        mapping/
+            table/
+                <table mappings 1>.csv
+                ...
+            column/
+                <column mappings 1>.csv
+                ...
+    sql/
+        <db name>/
+            <schema name 1>/
+                <table ddl name 1>.sql
+                ...
+                <table ddl name m>.sql
+            ...
+            <schema name n>/
+			
+The readme file included in the dwgenerator-master you downloaded will detail what each of the csv files should look like. Replace the <> values
+in above example with whatever repository project, database and schema names you will be using. 
+
+Now you are ready to use your dwgenerator! the main command is the generate-views which will create views or table sql in the sql part of the above structure. 
