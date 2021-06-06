@@ -2,18 +2,10 @@ import json, sys, csv
 from pathlib import Path
 
 import click
-from jinja2 import Environment
-from jinja2.loaders import FileSystemLoader
 
 from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
 from .mappings import TableMappings, ColumnMappings, Mappings
-
-root_location = Path(__file__).parent.resolve()
-env = Environment(
-    loader=FileSystemLoader(str(root_location / 'sql')),
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
+from .templates import render
 
 @click.group()
 def cli():
@@ -49,18 +41,10 @@ def generate_view(metadata, dbtype, target, out, verbose):
     try:
       if verbose: 
         click.secho(str(target_table), file=sys.stderr, fg='cyan')
-      template_path = None
-      if isinstance(target_table, Hub):
-        template_path = 'hub_view.sql'
-      if isinstance(target_table, Link):
-        template_path = 'link_view.sql'
-      if isinstance(target_table, Satellite):
-        template_path = 'satellite_view.sql'
-      if template_path:
+      if target_table.table_type in ['hub', 'link', 'satellite']:
         target_table.check()
         mappings.check(target_table)
-        template = env.get_template(dbtype + '/' + template_path)
-        sql = template.render(target_table=target_table, mappings=mappings)
+        sql = render(target_table, mappings, dbtype, 'view')
         if out:
           outpath = Path(out) / target_table.schema / (target_table.name + '_v.sql')
           click.secho(str(outpath), file=sys.stderr, fg='green')

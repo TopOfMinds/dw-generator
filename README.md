@@ -108,3 +108,13 @@ Example:
 | src_cm | person_detail | now() | | dv | customer_h | load_dts |
 | src_cm | person_detail | | 'cm' | dv | customer_h | rec_src |
 
+## Development
+
+### Testing
+
+[Sqlite3](https://docs.python.org/3/library/sqlite3.html), that is embedded in Python is used for template testing. As window functions was implemented recently in `Sqlite3` only the latest versions of Python supports it. Python 3.9.5 has a new enough `Sqlite3` version, earlier versions of Python might work as well, but I have not tested.
+
+Run all tests:
+```
+$ python -m unittest -v
+```

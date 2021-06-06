@@ -10,7 +10,7 @@ class MetaDataWarning(Warning):
     pass
 
 class Column:
-  def __init__(self, name, type_, parent):
+  def __init__(self, name, type_, parent=None):
     self.name = name
     self.type = type_
     self.parent = parent
@@ -26,7 +26,7 @@ class Columns(list):
   pass
 
 class Table:
-  def __init__(self, schema, name, columns, path):
+  def __init__(self, schema, name, columns, path=None):
     self.schema = schema
     self.name = name
     self.columns = columns
