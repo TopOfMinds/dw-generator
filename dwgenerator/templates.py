@@ -12,9 +12,9 @@ env = Environment(
     lstrip_blocks=True,
 )
 
-def render(target_table, mappings, dbtype, target_type):
+def render(target_table, mappings, dbtype):
     table_type = target_table.table_type
-    template_path = f"{table_type}_{target_type}.sql"
+    template_path = f"{table_type}_view.sql"
     template = env.get_template(dbtype + '/' + template_path)
     sql = template.render(target_table=target_table, mappings=mappings)
     return sql

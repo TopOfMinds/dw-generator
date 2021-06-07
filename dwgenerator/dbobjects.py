@@ -19,6 +19,9 @@ class Column:
   def full_name(self):
     return "{}.{}".format(self.parent.full_name, self.name)
 
+  def __eq__(self, other):
+    return isinstance(other, Column) and vars(self) == vars(other)
+
   def __str__(self):
     return "{}: {}".format(self.name, self.type)
 
@@ -26,14 +29,29 @@ class Columns(list):
   pass
 
 class Table:
-  def __init__(self, schema, name, columns, path=None):
+  def __init__(self, schema, name, columns, path=None, **properties):
     self.schema = schema
     self.name = name
     self.columns = columns
     self.path = path
+    self.properties = properties
     for column in columns:
       column.parent = self
   
+  @classmethod
+  def from_columns(cls, schema_name, table_name, columns, path=None):
+    is_property = lambda column: len(column['name']) >= 1 and column['name'][0] == '#'
+    properties = {
+      column['name'][1:].lower(): column['type']
+      for column in columns if is_property(column)
+    }
+    new_columns = [
+      Column(column['name'].lower(), column['type'], None)
+      for column in columns if not is_property(column)
+    ]
+    table = Table(schema_name, table_name, new_columns, path, **properties)
+    return table
+
   @classmethod
   def read(cls, path):
     p = PurePath(path)
@@ -42,9 +60,7 @@ class Table:
     # The table defs are saved as utf-8 BOM, which they shouldn't, and this is handled by utf-8-sig
     with open(path, encoding='utf-8-sig') as table_file:
       orig_columns = list(csv.DictReader(table_file, delimiter=','))
-    columns = [Column(column['name'].lower(), column['type'], None) for column in orig_columns]
-    table = Table(schema_name, table_name, columns, path)
-    return table
+    return cls.from_columns(schema_name, table_name, orig_columns, path)
 
   @property
   def full_name(self):
