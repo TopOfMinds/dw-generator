@@ -34,6 +34,9 @@ class Table:
     self.name = name
     self.columns = columns
     self.path = path
+    # set view as the default generation type to keep the generator compatible
+    # with old table meta data
+    properties.setdefault('generate_type', 'view')
     self.properties = properties
     for column in columns:
       column.parent = self
@@ -107,7 +110,7 @@ class DataVaultObject(Table):
   rec_src_name = 'rec_src'
   column_role_names = [load_dts_name, rec_src_name]
   def __init__(self, table):
-    super().__init__(table.schema, table.name, table.columns, table.path)
+    super().__init__(table.schema, table.name, table.columns, table.path, **table.properties)
 
   @property
   def load_dts(self):

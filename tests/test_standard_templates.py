@@ -32,7 +32,7 @@ class TestStandardTemplates(unittest.TestCase):
         Column('ssn', 'text'),
         Column('load_dts', 'numeric'),
         Column('rec_src', 'text'),
-    ], **properties))
+      ], **properties))
     target_table.check()
     return target_table
 
@@ -131,11 +131,18 @@ class TestStandardTemplates(unittest.TestCase):
       ('2345', '199001010101', ts + 21),
     ])
 
+  # Utils
+  def render_view(self, target_table, mappings, dbtype):
+    [(_, sql), *rest] = render(target_table, mappings, dbtype)
+    self.assertTrue(len(rest) == 0)
+    return sql
+
   # Test the data vault objects
-  def test_hub(self):
+  ## Test views
+  def test_hub_view(self):
     target_table = self.create_customer_h()
     mappings = self.create_customer_h_mappings(target_table)
-    sql = render(target_table, mappings, self.dbtype)
+    sql = self.render_view(target_table, mappings, self.dbtype)
 
     self.create_customers()
     self.create_sales_lines()
@@ -149,10 +156,10 @@ class TestStandardTemplates(unittest.TestCase):
     ]
     self.assertEqual(result, expected)
 
-  def test_link(self):
+  def test_link_view(self):
     target_table = self.create_sales_line_customer_l()
     mappings = self.create_sales_line_customer_l_mappings(target_table)
-    sql = render(target_table, mappings, self.dbtype)
+    sql = self.render_view(target_table, mappings, self.dbtype)
 
     self.create_sales_lines()
     self.cur.executescript(sql)
@@ -164,10 +171,10 @@ class TestStandardTemplates(unittest.TestCase):
     ]
     self.assertEqual(result, expected)
 
-  def test_satellite(self):
+  def test_satellite_view(self):
     target_table = self.create_customer_s()
     mappings = self.create_customer_s_mappings(target_table)
-    sql = render(target_table, mappings, self.dbtype)
+    sql = self.render_view(target_table, mappings, self.dbtype)
 
     self.create_customers()
     self.cur.executescript(sql)
@@ -180,3 +187,92 @@ class TestStandardTemplates(unittest.TestCase):
     ]
     self.assertEqual(result, expected)
 
+  ## Test persited tables
+  def test_hub_persisted(self):
+    target_table = self.create_customer_h(generate_type='table')
+    mappings = self.create_customer_h_mappings(target_table)
+    [(ddl_path, ddl), (etl_path, etl)] = render(target_table, mappings, self.dbtype)
+
+    self.assertEqual(ddl_path.as_posix(), 'db/customer_h_t.sql')
+    self.assertEqual(etl_path.as_posix(), 'db/customer_h_etl.sql')
+
+    self.cur.executescript(ddl)
+    result = list(self.cur.execute("PRAGMA db.table_info('customer_h')"))
+    expected = [
+      (0, 'customer_key', 'text', 0, None, 0),
+      (1, 'ssn', 'text', 0, None, 0),
+      (2, 'load_dts', 'numeric', 0, None, 0),
+      (3, 'rec_src', 'text', 0, None, 0)
+    ]
+    self.assertEqual(result, expected)
+
+    self.create_customers()
+    self.create_sales_lines()
+    self.cur.executescript(etl)
+
+    result = list(self.cur.execute('SELECT * FROM db.customer_h ORDER BY load_dts'))
+    expected = [
+      ('198001010101', '198001010101', 1622549400.0, 'db'),
+      ('199001010101', '199001010101', 1622549401.0, 'db'),
+      ('199201010101', '199201010101', 1622549402.0, 'db')
+    ]
+    self.assertEqual(result, expected)
+
+  def test_link_persisted(self):
+    target_table = self.create_sales_line_customer_l(generate_type='table')
+    mappings = self.create_sales_line_customer_l_mappings(target_table)
+    [(ddl_path, ddl), (etl_path, etl)] = render(target_table, mappings, self.dbtype)
+
+    self.assertEqual(ddl_path.as_posix(), 'db/sales_line_customer_l_t.sql')
+    self.assertEqual(etl_path.as_posix(), 'db/sales_line_customer_l_etl.sql')
+
+    self.cur.executescript(ddl)
+    result = list(self.cur.execute("PRAGMA db.table_info('sales_line_customer_l')"))
+    expected = [
+      (0, 'sales_line_customer_l_key', 'text', 0, None, 0),
+      (1, 'sales_line_key', 'text', 0, None, 0),
+      (2, 'customer_key', 'text', 0, None, 0),
+      (3, 'load_dts', 'numeric', 0, None, 0),
+      (4, 'rec_src', 'text', 0, None, 0)
+    ]
+    self.assertEqual(result, expected)
+
+    self.create_sales_lines()
+    self.cur.executescript(etl)
+
+    result = list(self.cur.execute('SELECT * FROM db.sales_line_customer_l ORDER BY load_dts'))
+    expected = [
+      ('1234|198001010101', '1234', '198001010101', 1622549420.0, 'db'),
+      ('2345|199001010101', '2345', '199001010101', 1622549421.0, 'db')
+    ]
+    self.assertEqual(result, expected)
+
+  def test_satellite_persisted(self):
+    target_table = self.create_customer_s(generate_type='table')
+    mappings = self.create_customer_s_mappings(target_table)
+    [(ddl_path, ddl), (etl_path, etl)] = render(target_table, mappings, self.dbtype)
+
+    self.assertEqual(ddl_path.as_posix(), 'db/customer_s_t.sql')
+    self.assertEqual(etl_path.as_posix(), 'db/customer_s_etl.sql')
+
+    self.cur.executescript(ddl)
+    result = list(self.cur.execute("PRAGMA db.table_info('customer_s')"))
+    expected = [
+      (0, 'customer_key', 'text', 0, None, 0),
+      (1, 'load_dts', 'numeric', 0, None, 0),
+      (2, 'ssn', 'text', 0, None, 0),
+      (3, 'name', 'text', 0, None, 0),
+      (4, 'rec_src', 'text', 0, None, 0)
+    ]
+    self.assertEqual(result, expected)
+
+    self.create_customers()
+    self.cur.executescript(etl)
+
+    result = list(self.cur.execute('SELECT * FROM db.customer_s ORDER BY load_dts'))
+    expected = [
+      ('198001010101', 1622549400.0, '198001010101', 'Michael', 'db'),
+      ('199001010101', 1622549401.0, '199001010101', 'Jessica', 'db'),
+      ('199201010101', 1622549402.0, '199201010101', 'Ashley', 'db'),
+    ]
+    self.assertEqual(result, expected)

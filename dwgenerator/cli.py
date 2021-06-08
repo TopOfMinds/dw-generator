@@ -44,14 +44,15 @@ def generate_view(metadata, dbtype, target, out, verbose):
       if target_table.table_type in ['hub', 'link', 'satellite']:
         target_table.check()
         mappings.check(target_table)
-        sql = render(target_table, mappings, dbtype)
-        if out:
-          outpath = Path(out) / target_table.schema / (target_table.name + '_v.sql')
-          click.secho(str(outpath), file=sys.stderr, fg='green')
-          with open(outpath, 'w') as outfile:
-            outfile.write(sql)
-        else:
-          print(sql)
+        render_results = render(target_table, mappings, dbtype)
+        for (relative_path, sql) in render_results:
+          if out:
+            outpath = Path(out) / relative_path
+            click.secho(str(outpath), file=sys.stderr, fg='green')
+            with open(outpath, 'w') as outfile:
+              outfile.write(sql)
+          else:
+            print(sql)
       else:
         click.secho('Unknown table type: {}'.format(target_table), file=sys.stderr, fg='yellow')
     except MetaDataError as e:

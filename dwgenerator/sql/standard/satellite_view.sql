@@ -3,10 +3,17 @@
 --   ======================================================================================
 
 {% set union_all = joiner("UNION ALL") %}
+{% if target_table.properties.generate_type == 'view' %}
 DROP VIEW IF EXISTS {{ target_table.full_name }};
 
 CREATE VIEW {{ target_table.full_name }}
 AS
+{% endif %}
+{% if target_table.properties.generate_type == 'table' %}
+DELETE FROM {{ target_table.full_name }};
+
+INSERT INTO {{ target_table.full_name }}
+{% endif %}
 SELECT
   {{ target_table.key.name }}
   ,max({{ target_table.load_dts.name }}) AS {{ target_table.load_dts.name }}
