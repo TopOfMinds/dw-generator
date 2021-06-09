@@ -65,14 +65,15 @@ Example:
 
 ### Table defs
 
-Generation of `create table` DDLs, requires knowledge of table name and column names with data types. To achieve this there should be one table definition CSV file for each target table. The file name should be on the format: `metadata/table_def/<schema_name>/<table_name>.csv`. The content in the table definition CSV is based on the output from `describe table` (in Snowflake). Currently the generator only uses the content in name and type fields, so the rest of the fields can be empty.
+Generation of `create table` DDLs, requires knowledge of table name and column names with data types. To achieve this there should be one table definition CSV file for each target table. The file name should be on the format: `metadata/table_def/<schema_name>/<table_name>.csv`. The content in the table definition CSV is based on the output from `describe table` (in Snowflake). Currently the generator only uses the content in name and type fields, so the rest of the fields can be empty. Meta data properties kan be added by having names that start with '#'. '#generate_type' is used to decide if a table or a view should be generated, view is default.
 
 Example:
 
-| name     | type         | kind   | null? | default | primary key | unique key | check | expression | comment |
-|----------|--------------|--------|-------|---------|-------------|------------|-------|------------|---------|
-| id       | NUMBER(38,0) | COLUMN | N     | NULL    | Y           | N          | NULL  | NULL       | NULL    |
-| fname    | VARCHAR(50)  | COLUMN | Y     | NULL    | N           | N          | NULL  | NULL       | NULL    |
+| name           | type         |
+|----------------|--------------|
+| id             | NUMBER(38,0) |
+| fname          | VARCHAR(50)  |
+| #generate_type | table        |
 
 ### Mapping files
 
