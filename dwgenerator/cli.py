@@ -5,7 +5,7 @@ import click
 
 from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
 from .mappings import TableMappings, ColumnMappings, Mappings
-from .templates import render
+from .templates import Templates
 
 @click.group()
 def cli():
@@ -20,6 +20,7 @@ def cli():
 @click.option('-v', '--verbose', help='Print extra information', count=True)
 def generate_view(metadata, dbtype, target, out, verbose):
   """Generate view SQL for a table"""
+  templates = Templates(dbtype)
   metadata_path = Path(metadata)
   mappings_path = metadata_path / 'mapping'
   tm = TableMappings.read(mappings_path / 'table')
@@ -44,7 +45,7 @@ def generate_view(metadata, dbtype, target, out, verbose):
       if target_table.table_type in ['hub', 'link', 'satellite']:
         target_table.check()
         mappings.check(target_table)
-        render_results = render(target_table, mappings, dbtype)
+        render_results = templates.render(target_table, mappings)
         for (relative_path, sql) in render_results:
           if out:
             outpath = Path(out) / relative_path

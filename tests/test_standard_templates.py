@@ -5,7 +5,7 @@ from datetime import datetime
 
 from dwgenerator.dbobjects import Schema, Table, Column, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
 from dwgenerator.mappings import TableMappings, ColumnMappings, Mappings
-from dwgenerator.templates import render
+from dwgenerator.templates import Templates
 
 TableMapping = namedtuple('TableMapping',
   'source_schema source_table source_filter target_schema target_table')
@@ -17,6 +17,7 @@ class TestStandardTemplates(unittest.TestCase):
   # Prepare the DB
   def setUp(self):
     self.dbtype = 'standard'
+    self.templates = Templates(self.dbtype)
     self.connection = sqlite3.connect(':memory:')
     self.cur = self.connection.cursor()
     self.cur.execute("ATTACH DATABASE ':memory:' AS db")
@@ -132,8 +133,8 @@ class TestStandardTemplates(unittest.TestCase):
     ])
 
   # Utils
-  def render_view(self, target_table, mappings, dbtype):
-    [(_, sql), *rest] = render(target_table, mappings, dbtype)
+  def render_view(self, target_table, mappings):
+    [(_, sql), *rest] = self.templates.render(target_table, mappings)
     self.assertTrue(len(rest) == 0)
     return sql
 
@@ -142,7 +143,7 @@ class TestStandardTemplates(unittest.TestCase):
   def test_hub_view(self):
     target_table = self.create_customer_h()
     mappings = self.create_customer_h_mappings(target_table)
-    sql = self.render_view(target_table, mappings, self.dbtype)
+    sql = self.render_view(target_table, mappings)
 
     self.create_customers()
     self.create_sales_lines()
@@ -159,7 +160,7 @@ class TestStandardTemplates(unittest.TestCase):
   def test_link_view(self):
     target_table = self.create_sales_line_customer_l()
     mappings = self.create_sales_line_customer_l_mappings(target_table)
-    sql = self.render_view(target_table, mappings, self.dbtype)
+    sql = self.render_view(target_table, mappings)
 
     self.create_sales_lines()
     self.cur.executescript(sql)
@@ -174,7 +175,7 @@ class TestStandardTemplates(unittest.TestCase):
   def test_satellite_view(self):
     target_table = self.create_customer_s()
     mappings = self.create_customer_s_mappings(target_table)
-    sql = self.render_view(target_table, mappings, self.dbtype)
+    sql = self.render_view(target_table, mappings)
 
     self.create_customers()
     self.cur.executescript(sql)
@@ -191,7 +192,7 @@ class TestStandardTemplates(unittest.TestCase):
   def test_hub_persisted(self):
     target_table = self.create_customer_h(generate_type='table')
     mappings = self.create_customer_h_mappings(target_table)
-    [(ddl_path, ddl), (etl_path, etl)] = render(target_table, mappings, self.dbtype)
+    [(ddl_path, ddl), (etl_path, etl)] = self.templates.render(target_table, mappings)
 
     self.assertEqual(ddl_path.as_posix(), 'db/customer_h_t.sql')
     self.assertEqual(etl_path.as_posix(), 'db/customer_h_etl.sql')
@@ -221,7 +222,7 @@ class TestStandardTemplates(unittest.TestCase):
   def test_link_persisted(self):
     target_table = self.create_sales_line_customer_l(generate_type='table')
     mappings = self.create_sales_line_customer_l_mappings(target_table)
-    [(ddl_path, ddl), (etl_path, etl)] = render(target_table, mappings, self.dbtype)
+    [(ddl_path, ddl), (etl_path, etl)] = self.templates.render(target_table, mappings)
 
     self.assertEqual(ddl_path.as_posix(), 'db/sales_line_customer_l_t.sql')
     self.assertEqual(etl_path.as_posix(), 'db/sales_line_customer_l_etl.sql')
@@ -250,7 +251,7 @@ class TestStandardTemplates(unittest.TestCase):
   def test_satellite_persisted(self):
     target_table = self.create_customer_s(generate_type='table')
     mappings = self.create_customer_s_mappings(target_table)
-    [(ddl_path, ddl), (etl_path, etl)] = render(target_table, mappings, self.dbtype)
+    [(ddl_path, ddl), (etl_path, etl)] = self.templates.render(target_table, mappings)
 
     self.assertEqual(ddl_path.as_posix(), 'db/customer_s_t.sql')
     self.assertEqual(etl_path.as_posix(), 'db/customer_s_etl.sql')
