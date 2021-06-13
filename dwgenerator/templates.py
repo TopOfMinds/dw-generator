@@ -2,14 +2,20 @@ from pathlib import Path
 from re import template
 
 from jinja2 import Environment
-from jinja2.loaders import PackageLoader
+from jinja2.loaders import ChoiceLoader, PackageLoader
 
 from .dbobjects import MetaDataError
 
 class Templates:
   def __init__(self, dbtype):
+    loaders = [
+      PackageLoader('dwgenerator', f'sql/{dbtype}')
+    ]
+    # Use standard SQL as fallback if not the specific template is implemented.
+    if dbtype != 'standard':
+      loaders.append(PackageLoader('dwgenerator', 'sql/standard'))
     self.env = Environment(
-      loader=PackageLoader('dwgenerator', f'sql/{dbtype}'),
+      loader=ChoiceLoader(loaders),
       trim_blocks=True,
       lstrip_blocks=True,
     )
