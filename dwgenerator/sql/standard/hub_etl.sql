@@ -1,4 +1,4 @@
-{% extends 'create_view.sql' %}
+{% extends 'create_persisted.sql' %}
 {% block select %}
 {% include 'hub_select.sql' %}
 {% endblock %}

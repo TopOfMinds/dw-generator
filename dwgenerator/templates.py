@@ -21,7 +21,7 @@ class Templates:
       template_paths = [f"{table_type}_view.sql"]
       suffixes = ['v']
     elif generate_type == 'table':
-      template_paths = ["create_table.sql", f"{table_type}_view.sql"]
+      template_paths = ["create_table.sql", f"{table_type}_etl.sql"]
       suffixes = ['t', 'etl']
     else:
       raise MetaDataError(f"Unknown generate_type={generate_type} for {target_table.name}.")
