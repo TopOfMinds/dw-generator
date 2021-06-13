@@ -1,3 +1,4 @@
+{% from 'external_param.sql' import external_param %}
 SELECT
   {{ target_table.root_key.name }}
   {% for key in target_table.keys %}
@@ -32,8 +33,8 @@ FROM (
     {% set and_ = joiner("AND ") %}
     WHERE {% if source_filter %}{{ and_() }}{{ source_filter }}{% endif +%}
       {% if insert_ %}
-      {{ and_() }}:start_ts <= {{ mappings.source_column(source_table, target_table.load_dts) }}
-      AND {{ mappings.source_column(source_table, target_table.load_dts) }} < :end_ts
+      {{ and_() }}{{ external_param('start_ts') }} <= {{ mappings.source_column(source_table, target_table.load_dts) }}
+      AND {{ mappings.source_column(source_table, target_table.load_dts) }} < {{ external_param('end_ts') }}
       {% endif %}
     {% endif %}
     {% endfor %}

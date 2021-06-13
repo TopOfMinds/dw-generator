@@ -220,6 +220,7 @@ class TestStandardTemplates(unittest.TestCase):
     self.create_sales_lines()
 
     ts = self.start_ts
+    # print(etl)
     self.executescript(etl, {'start_ts': ts, 'end_ts': ts + 2})
     result1 = list(self.cur.execute('SELECT * FROM db.customer_h ORDER BY load_dts'))
     expected1 = [
@@ -257,6 +258,7 @@ class TestStandardTemplates(unittest.TestCase):
     self.create_sales_lines()
 
     ts = self.start_ts
+    # print(etl)
     self.executescript(etl, {'start_ts': ts + 0, 'end_ts': ts + 3600})
     result1 = list(self.cur.execute('SELECT * FROM db.sales_line_customer_l ORDER BY load_dts'))
     expected1 = [
@@ -294,6 +296,7 @@ class TestStandardTemplates(unittest.TestCase):
     self.create_customers()
 
     ts = self.start_ts
+    # print(etl)
     self.executescript(etl, {'start_ts': ts, 'end_ts': ts + 2})
     result1 = list(self.cur.execute('SELECT * FROM db.customer_s ORDER BY load_dts'))
     expected1 = [

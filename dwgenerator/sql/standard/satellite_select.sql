@@ -1,3 +1,4 @@
+{% from 'external_param.sql' import external_param %}
 SELECT
   {{ target_table.key.name }}
   ,max({{ target_table.load_dts.name }}) AS {{ target_table.load_dts.name }}
@@ -22,10 +23,12 @@ FROM (
   {% if source_filter or insert_ %}
   WHERE
     {% set and_ = joiner("AND ") %}
-    {%+ if source_filter %}{{ and_() }}{{ source_filter }}{% endif +%}
+    {% if source_filter %}
+    {{ and_() }}{{ source_filter }}
+    {% endif %}
     {% if insert_ %}
-    {{ and_() }}:start_ts <= {{ mappings.source_column(source_table, target_table.load_dts) }}
-    AND {{ mappings.source_column(source_table, target_table.load_dts) }} < :end_ts
+    {{ and_() }}{{ external_param('start_ts') }} <= {{ mappings.source_column(source_table, target_table.load_dts) }}
+    AND {{ mappings.source_column(source_table, target_table.load_dts) }} < {{ external_param('end_ts') }}
     {% endif %}
   {% endif %}
   {% endfor %}
