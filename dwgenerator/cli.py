@@ -14,7 +14,7 @@ def cli():
 
 @cli.command()
 @click.option('--metadata', help='The metadata directory', type=click.Path(exists=True), default='metadata', show_default=True)
-@click.option('--dbtype', help='The target database type', default='snowflake', show_default=True)
+@click.option('--dbtype', help='The target database type', default='standard', show_default=True)
 @click.option('--target', help='Mappings to schema.table')
 @click.option('--out', help='Output directory')
 @click.option('-v', '--verbose', help='Print extra information', count=True)
