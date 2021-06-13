@@ -3,15 +3,14 @@
 --   ======================================================================================
 
 {% set union_all = joiner("UNION ALL") %}
+{% set insert_ = target_table.properties.generate_type == 'table' %}
 {% if target_table.properties.generate_type == 'view' %}
 DROP VIEW IF EXISTS {{ target_table.full_name }};
 
 CREATE VIEW {{ target_table.full_name }}
 AS
 {% endif %}
-{% if target_table.properties.generate_type == 'table' %}
-DELETE FROM {{ target_table.full_name }};
-
+{% if insert_ %}
 INSERT INTO {{ target_table.full_name }}
 {% endif %}
 SELECT
@@ -43,11 +42,26 @@ FROM (
       ,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
       ,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
     FROM {{ source_table.full_name }}
-    {% if source_filter %}
-    WHERE {{ source_filter }}
+    {% if source_filter or insert_ %}
+    WHERE
+      {% set and_ = joiner("AND ") %}
+      {% if source_filter %}{{ and_() }}{{ source_filter }}{% endif %}
+      {% if insert_ %}
+      {{ and_() }}:start_ts <= {{ mappings.source_column(source_table, target_table.load_dts) }}
+      AND {{ mappings.source_column(source_table, target_table.load_dts) }} < :end_ts
+      {% endif %}
     {% endif %}
     {% endfor %}
   )
+  {% if insert_ %}
+  AS q
+  WHERE
+    NOT EXISTS (
+      SELECT 1
+      FROM {{ target_table.full_name }} t
+      WHERE t.{{ target_table.root_key.name }} = q.{{ target_table.root_key.name }}
+    )
+  {% endif %}
 )
 WHERE rn = 1
 ;

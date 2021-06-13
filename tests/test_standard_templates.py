@@ -17,6 +17,7 @@ class TestStandardTemplates(unittest.TestCase):
   # Prepare the DB
   def setUp(self):
     self.dbtype = 'standard'
+    self.start_ts = datetime.fromisoformat('2021-06-01T12:10:00+00:00').timestamp()
     self.templates = Templates(self.dbtype)
     self.connection = sqlite3.connect(':memory:')
     self.cur = self.connection.cursor()
@@ -117,7 +118,7 @@ class TestStandardTemplates(unittest.TestCase):
   # Create and put test data in source tables
   def create_customers(self):
     self.cur.execute('CREATE TABLE db.customers (ssn, name, load_dts)')
-    ts = datetime.fromisoformat('2021-06-01T12:10:00+00:00').timestamp()
+    ts = self.start_ts
     self.cur.executemany('INSERT INTO db.customers VALUES(?, ?, ?)', [
       ('198001010101', 'Michael', ts),
       ('199001010101', 'Jessica', ts + 1),
@@ -126,10 +127,12 @@ class TestStandardTemplates(unittest.TestCase):
 
   def create_sales_lines(self):
     self.cur.execute('CREATE TABLE db.sales_lines (txn_id, ssn, load_dts)')
-    ts = datetime.fromisoformat('2021-06-01T12:10:00+00:00').timestamp()
+    ts = self.start_ts
     self.cur.executemany('INSERT INTO db.sales_lines VALUES(?, ?, ?)', [
       ('1234', '198001010101', ts + 20),
       ('2345', '199001010101', ts + 21),
+      ('2345', '199001010101', ts + 3600),
+      ('3456', '199201010101', ts + 3601),
     ])
 
   # Utils
@@ -137,6 +140,11 @@ class TestStandardTemplates(unittest.TestCase):
     [(_, sql), *rest] = self.templates.render(target_table, mappings)
     self.assertTrue(len(rest) == 0)
     return sql
+
+  def executescript(self, sql, args):
+    for (key, value) in args.items():
+      sql = sql.replace(f':{key}', str(value))
+    self.cur.executescript(sql)
 
   # Test the data vault objects
   ## Test views
@@ -168,7 +176,8 @@ class TestStandardTemplates(unittest.TestCase):
     result = list(self.cur.execute('SELECT * FROM db.sales_line_customer_l ORDER BY load_dts'))
     expected = [
       ('1234|198001010101', '1234', '198001010101', 1622549420.0, 'db'),
-      ('2345|199001010101', '2345', '199001010101', 1622549421.0, 'db')
+      ('2345|199001010101', '2345', '199001010101', 1622549421.0, 'db'),
+      ('3456|199201010101', '3456', '199201010101', 1622553001.0, 'db'),
     ]
     self.assertEqual(result, expected)
 
@@ -209,15 +218,22 @@ class TestStandardTemplates(unittest.TestCase):
 
     self.create_customers()
     self.create_sales_lines()
-    self.cur.executescript(etl)
 
-    result = list(self.cur.execute('SELECT * FROM db.customer_h ORDER BY load_dts'))
-    expected = [
+    ts = self.start_ts
+    self.executescript(etl, {'start_ts': ts, 'end_ts': ts + 2})
+    result1 = list(self.cur.execute('SELECT * FROM db.customer_h ORDER BY load_dts'))
+    expected1 = [
       ('198001010101', '198001010101', 1622549400.0, 'db'),
       ('199001010101', '199001010101', 1622549401.0, 'db'),
+    ]
+    self.assertEqual(result1, expected1)
+
+    self.executescript(etl, {'start_ts': ts + 2, 'end_ts': ts + 4000})
+    result2 = list(self.cur.execute('SELECT * FROM db.customer_h ORDER BY load_dts'))
+    expected2 = expected1 + [
       ('199201010101', '199201010101', 1622549402.0, 'db')
     ]
-    self.assertEqual(result, expected)
+    self.assertEqual(result2, expected2)
 
   def test_link_persisted(self):
     target_table = self.create_sales_line_customer_l(generate_type='table')
@@ -239,14 +255,22 @@ class TestStandardTemplates(unittest.TestCase):
     self.assertEqual(result, expected)
 
     self.create_sales_lines()
-    self.cur.executescript(etl)
 
-    result = list(self.cur.execute('SELECT * FROM db.sales_line_customer_l ORDER BY load_dts'))
-    expected = [
+    ts = self.start_ts
+    self.executescript(etl, {'start_ts': ts + 0, 'end_ts': ts + 3600})
+    result1 = list(self.cur.execute('SELECT * FROM db.sales_line_customer_l ORDER BY load_dts'))
+    expected1 = [
       ('1234|198001010101', '1234', '198001010101', 1622549420.0, 'db'),
-      ('2345|199001010101', '2345', '199001010101', 1622549421.0, 'db')
+      ('2345|199001010101', '2345', '199001010101', 1622549421.0, 'db'),
     ]
-    self.assertEqual(result, expected)
+    self.assertEqual(result1, expected1)
+
+    self.executescript(etl, {'start_ts': ts + 3600, 'end_ts': ts + 7200})
+    result2 = list(self.cur.execute('SELECT * FROM db.sales_line_customer_l ORDER BY load_dts'))
+    expected2 = expected1 + [
+      ('3456|199201010101', '3456', '199201010101', 1622553001.0, 'db'),
+    ]
+    self.assertEqual(result2, expected2)
 
   def test_satellite_persisted(self):
     target_table = self.create_customer_s(generate_type='table')
@@ -268,12 +292,19 @@ class TestStandardTemplates(unittest.TestCase):
     self.assertEqual(result, expected)
 
     self.create_customers()
-    self.cur.executescript(etl)
 
-    result = list(self.cur.execute('SELECT * FROM db.customer_s ORDER BY load_dts'))
-    expected = [
+    ts = self.start_ts
+    self.executescript(etl, {'start_ts': ts, 'end_ts': ts + 2})
+    result1 = list(self.cur.execute('SELECT * FROM db.customer_s ORDER BY load_dts'))
+    expected1 = [
       ('198001010101', 1622549400.0, '198001010101', 'Michael', 'db'),
       ('199001010101', 1622549401.0, '199001010101', 'Jessica', 'db'),
+    ]
+    self.assertEqual(result1, expected1)
+
+    self.executescript(etl, {'start_ts': ts + 2, 'end_ts': ts + 4})
+    result2 = list(self.cur.execute('SELECT * FROM db.customer_s ORDER BY load_dts'))
+    expected2 = expected1 + [
       ('199201010101', 1622549402.0, '199201010101', 'Ashley', 'db'),
     ]
-    self.assertEqual(result, expected)
+    self.assertEqual(result2, expected2)
