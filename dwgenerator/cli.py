@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from .dbobjects import Schema, Table, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
+from .dbobjects import DB, Schema, Table, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
 from .mappings import TableMappings, ColumnMappings, Mappings
 from .templates import Templates
 
@@ -29,38 +29,41 @@ def generate_view(metadata, dbtype, target, out, verbose):
   with open(target_tables_path, encoding='utf-8') as target_tables_file:
     target_tables = list(csv.DictReader(target_tables_file, dialect=csv.excel))
   table_def_path = metadata_path / 'table_def'
-  target_table_paths = [
-    table_def_path / target_table['schema'] / (target_table['table'] + '.csv')
-    for target_table in target_tables if target_table['generate'] == 'true'
-  ]
-  tables = [create_typed_table(Table.read(target_table_path)) for target_table_path in target_table_paths]
+  db = DB.read(table_def_path)
+  tables = list(db['dv'].tables.values()) # FIXME
   mappings = Mappings(tm, cm, tables + cm.source_tables())
   if target:
     schema_name, table_name = target.split('.')
     tables = [table for table in tables if table.schema == schema_name and table.name == table_name]
-  for target_table in tables:
     try:
-      if verbose: 
-        click.secho(str(target_table), file=sys.stderr, fg='cyan')
-      if target_table.table_type in ['hub', 'link', 'satellite']:
-        target_table.check()
-        mappings.check(target_table)
-        render_results = templates.render(target_table, mappings)
-        for (relative_path, sql) in render_results:
-          if out:
-            outpath = Path(out) / relative_path
-            click.secho(str(outpath), file=sys.stderr, fg='green')
-            with open(outpath, 'w') as outfile:
-              outfile.write(sql)
-          else:
-            print(sql)
-      else:
-        click.secho('Unknown table type: {}'.format(target_table), file=sys.stderr, fg='yellow')
-    except MetaDataError as e:
-        click.secho("Meta data error: {}".format(e), file=sys.stderr, fg='red')
-        # break
-    except MetaDataWarning as e:
-        click.secho("Meta data warning: {}".format(e), file=sys.stderr, fg='yellow')
+      tables = [db[schema_name][table_name]]
+    except IndexError:
+      tables = []
+  for target_table_info in target_tables:
+    if target_table_info['generate'] == 'true':
+      try:
+        target_table = db[target_table_info['schema']][target_table_info['table']]
+        if verbose:
+          click.secho(str(target_table), file=sys.stderr, fg='cyan')
+        if target_table.table_type in ['hub', 'link', 'satellite']:
+          target_table.check()
+          mappings.check(target_table)
+          render_results = templates.render(target_table, mappings)
+          for (relative_path, sql) in render_results:
+            if out:
+              outpath = Path(out) / relative_path
+              click.secho(str(outpath), file=sys.stderr, fg='green')
+              with open(outpath, 'w') as outfile:
+                outfile.write(sql)
+            else:
+              print(sql)
+        else:
+          click.secho('Unknown table type: {}'.format(target_table), file=sys.stderr, fg='yellow')
+      except MetaDataError as e:
+          click.secho("Meta data error: {}".format(e), file=sys.stderr, fg='red')
+          # break
+      except MetaDataWarning as e:
+          click.secho("Meta data warning: {}".format(e), file=sys.stderr, fg='yellow')
 
 @cli.group()
 def util():

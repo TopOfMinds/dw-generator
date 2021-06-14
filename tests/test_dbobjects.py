@@ -19,3 +19,94 @@ class TestDBObjects(unittest.TestCase):
       Column('field2', 'numeric', table),
     ]
     self.assertEqual(table.columns, expected)
+
+  def create_example_hub(self, **properties):
+    hub = create_typed_table(
+      Table('dv', 'example_h', [
+        Column('example_key', 'text'),
+        Column('example_id1', 'text'),
+        Column('example_id2', 'numeric'),
+        Column('load_dts', 'numeric'),
+        Column('rec_src', 'text'),
+      ], **properties)
+    )
+    hub.check()
+    return hub
+
+  def test_hub_fields(self):
+    hub = self.create_example_hub()
+    self.assertEqual(hub.key.name, 'example_key')
+    self.assertEqual([c.name for c in hub.business_keys], ['example_id1', 'example_id2'])
+    self.assertEqual([c.name for c in hub.pk], ['example_key'])
+    self.assertEqual(hub.fks, [])
+
+  def create_example_link(self, **properties):
+    link = create_typed_table(
+      Table('dv', 'example_l', [
+        Column('example_l_key', 'text'),
+        Column('example1_key', 'text'),
+        Column('example2_key', 'text'),
+        Column('load_dts', 'numeric'),
+        Column('rec_src', 'text'),
+      ], **properties)
+    )
+    link.check()
+    return link
+
+  def test_link_fields(self):
+    link = self.create_example_link()
+    self.assertEqual(link.root_key.name, 'example_l_key')
+    self.assertEqual([c.name for c in link.keys], ['example1_key', 'example2_key'])
+    self.assertEqual([c.name for c in link.pk], ['example_l_key'])
+    self.assertEqual(
+      [([c.name for c in cs], f) for cs, f in link.fks],
+      [
+        (['example1_key'], {'table': 'example1_h', 'column_names': ['example1_key']}),
+        (['example2_key'], {'table': 'example2_h', 'column_names': ['example2_key']})
+      ]
+    )
+
+  def create_example_satellite(self, **properties):
+    satellite = create_typed_table(
+      Table('dv', 'example_s', [
+        Column('example_key', 'text'),
+        Column('load_dts', 'numeric'),
+        Column('attribute1', 'text'),
+        Column('attribute2', 'numeric'),
+        Column('rec_src', 'text'),
+      ], **properties)
+    )
+    satellite.check()
+    return satellite
+
+  def test_satellite_fields(self):
+    satellite = self.create_example_satellite()
+    self.assertEqual(satellite.key.name, 'example_key')
+    self.assertEqual([a.name for a in satellite.attributes], ['attribute1', 'attribute2'])
+    self.assertEqual([c.name for c in satellite.pk], ['example_key', 'load_dts'])
+    self.assertEqual(
+      [([c.name for c in cs], f) for cs, f in satellite.fks], 
+      [(['example_key'], {'table': 'example_h', 'column_names': ['example_key']})]
+    )
+
+  def create_example_link_satellite(self, **properties):
+    link_satellite = create_typed_table(
+      Table('dv', 'example_l_s', [
+        Column('example_l_key', 'text'),
+        Column('load_dts', 'numeric'),
+        Column('effective_ts', 'numeric'),
+        Column('rec_src', 'text'),
+      ], **properties)
+    )
+    link_satellite.check()
+    return link_satellite
+
+  def test_link_satellite_fields(self):
+    link_satellite = self.create_example_link_satellite()
+    self.assertEqual(link_satellite.key.name, 'example_l_key')
+    self.assertEqual([a.name for a in link_satellite.attributes], ['effective_ts'])
+    self.assertEqual([c.name for c in link_satellite.pk], ['example_l_key', 'load_dts'])
+    self.assertEqual(
+      [([c.name for c in cs], f) for cs, f in link_satellite.fks], 
+      [(['example_l_key'], {'table': 'example_l', 'column_names': ['example_l_key']})]
+    )

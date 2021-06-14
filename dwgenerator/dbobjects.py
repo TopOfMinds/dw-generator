@@ -1,7 +1,6 @@
 import csv, re
-from glob import glob
 from os.path import join
-from pathlib import PurePath
+from pathlib import PurePath, Path
 
 class MetaDataError(Exception):
     pass
@@ -29,11 +28,12 @@ class Columns(list):
   pass
 
 class Table:
-  def __init__(self, schema, name, columns, path=None, **properties):
+  def __init__(self, schema, name, columns, path=None, parent=None, **properties):
     self.schema = schema
     self.name = name
     self.columns = columns
     self.path = path
+    self.parent = parent
     # set view as the default generation type to keep the generator compatible
     # with old table meta data
     properties.setdefault('generate_type', 'view')
@@ -57,9 +57,8 @@ class Table:
 
   @classmethod
   def read(cls, path):
-    p = PurePath(path)
-    table_name = p.stem
-    schema_name = p.parts[-2]
+    table_name = path.stem
+    schema_name = path.parts[-2]
     # The table defs are saved as utf-8 BOM, which they shouldn't, and this is handled by utf-8-sig
     with open(path, encoding='utf-8-sig') as table_file:
       orig_columns = list(csv.DictReader(table_file, delimiter=','))
@@ -68,6 +67,14 @@ class Table:
   @property
   def full_name(self):
     return "{}.{}".format(self.schema, self.name)
+
+  @property
+  def pk(self):
+    return []
+
+  @property
+  def fks(self):
+    return []
 
   def __str__(self):
     return "{}({})".format(self.full_name, ", ".join(str(c) for c in self.columns))
@@ -83,26 +90,59 @@ class Table:
       print(column.full_name)
 
 class Schema:
-  def __init__(self, name, tables, path):
+  def __init__(self, name, tables, path=None, parent=None):
     self.name = name
     self.tables = tables
     self.path = path
+    self.parent = parent
+    for table in tables.values():
+      table.parent = self
 
   @classmethod
   def read(cls, path):
-    p = PurePath(path)
-    schema = p.stem
-    tables_glob = join(path, '*.csv')
-    table_paths = glob(tables_glob)
-    tables = [Table.read(table_path) for table_path in table_paths]
+    schema = path.stem
+    table_paths = path.glob('*.csv')
+    tables = {
+      table_path.stem: create_typed_table(Table.read(table_path))
+      for table_path in table_paths
+    }
     return Schema(schema, tables, path)
 
   def __str__(self):
     return "{}: {}".format(self.name, self.path)
 
+  def __getitem__(self, table_name):
+    return self.tables[table_name]
+
   def print_schema(self):
     for table in self.tables:
       print(table)
+
+class DB:
+  def __init__(self, schemas, path=None):
+    self.schemas = schemas
+    self.path = path
+    for schema in self.schemas.values():
+      schema.parent = self
+
+  @classmethod
+  def read(cls, path):
+    schema_paths = [d for d in path.iterdir() if d.is_dir()]
+    schemas = {
+      schema_path.stem: Schema.read(schema_path)
+      for schema_path in schema_paths
+    }
+    return DB(schemas, path)
+
+  def __str__(self):
+    return "{}: {}".format('db', self.path)
+
+  def __getitem__(self, schema_name):
+    return self.schemas[schema_name]
+
+  def print_db(self):
+    for (name, schema) in self.schemas.items():
+      print(f"{name}: {schema}")
 
 class DataVaultObject(Table):
   table_type='dv'
@@ -150,6 +190,10 @@ class Hub(DataVaultObject):
       if c.name not in set([self.key_name, self.load_dts_name, self.rec_src_name])
     ]
 
+  @property
+  def pk(self):
+    return [self.key]
+
   def __str__(self):
     return  "{full_name}(key={key}, business_keys=[{business_keys}], load_dts={load_dts}, rec_src={rec_src})".format(
       full_name=self.full_name,
@@ -173,6 +217,20 @@ class Link(DataVaultObject):
   @property
   def keys(self):
     return [c for c in self.columns if c.name.endswith('_key') and c.name != self.root_key_name]
+
+  @property
+  def pk(self):
+    return [self.root_key]
+
+  @property
+  def fks(self):
+    return [
+      ([key], {
+        'table': key.name.replace('_key', '_h'),
+        'column_names': [key.name]
+      })
+      for key in self.keys
+    ]
 
   def __str__(self):
     return  "{full_name}(root_key={root_key}, keys=[{keys}], load_dts={load_dts}, rec_src={rec_src})".format(
@@ -201,6 +259,19 @@ class Satellite(DataVaultObject):
     return [
       c for c in self.columns 
       if c.name not in set([self.key.name if self.key else None, self.load_dts_name, self.rec_src_name])
+    ]
+
+  @property
+  def pk(self):
+    return [self.key, self.load_dts]
+
+  @property
+  def fks(self):
+    return [
+      ([self.key], {
+        'table': self.key.name.replace('_l_key', '_l').replace('_key', '_h'),
+        'column_names': [self.key.name]
+      })
     ]
 
   def __str__(self):
