@@ -27,6 +27,19 @@ class Column:
 class Columns(list):
   pass
 
+class ForeignKeyConstraint:
+  def __init__(self, columns, foreign_table_name, foreign_column_names, parent=None):
+    self.columns = columns
+    self.foreign_table_name = foreign_table_name
+    self.foreign_column_names = foreign_column_names
+    self.parent = parent
+
+  def names(self):
+    return (
+      (self.parent.name, [c.name for c in self.columns]),
+      (self.foreign_table_name, self.foreign_column_names)
+    )
+
 class Table:
   def __init__(self, schema, name, columns, path=None, parent=None, **properties):
     self.schema = schema
@@ -70,6 +83,10 @@ class Table:
 
   @property
   def pk(self):
+    return []
+
+  @property
+  def uk(self):
     return []
 
   @property
@@ -194,6 +211,10 @@ class Hub(DataVaultObject):
   def pk(self):
     return [self.key]
 
+  @property
+  def uk(self):
+    return self.business_keys
+
   def __str__(self):
     return  "{full_name}(key={key}, business_keys=[{business_keys}], load_dts={load_dts}, rec_src={rec_src})".format(
       full_name=self.full_name,
@@ -225,10 +246,7 @@ class Link(DataVaultObject):
   @property
   def fks(self):
     return [
-      ([key], {
-        'table': key.name.replace('_key', '_h'),
-        'column_names': [key.name]
-      })
+      ForeignKeyConstraint([key], key.name.replace('_key', '_h'), [key.name], self)
       for key in self.keys
     ]
 
@@ -257,7 +275,7 @@ class Satellite(DataVaultObject):
   @property
   def attributes(self):
     return [
-      c for c in self.columns 
+      c for c in self.columns
       if c.name not in set([self.key.name if self.key else None, self.load_dts_name, self.rec_src_name])
     ]
 
@@ -267,12 +285,12 @@ class Satellite(DataVaultObject):
 
   @property
   def fks(self):
-    return [
-      ([self.key], {
-        'table': self.key.name.replace('_l_key', '_l').replace('_key', '_h'),
-        'column_names': [self.key.name]
-      })
-    ]
+    return [ForeignKeyConstraint(
+      [self.key],
+      self.key.name.replace('_l_key', '_l').replace('_key', '_h'),
+      [self.key.name],
+      self
+    )]
 
   def __str__(self):
     return  "{full_name}(key={key}, attributes=[{attributes}], load_dts={load_dts}, rec_src={rec_src})".format(

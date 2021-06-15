@@ -38,6 +38,7 @@ class TestDBObjects(unittest.TestCase):
     self.assertEqual(hub.key.name, 'example_key')
     self.assertEqual([c.name for c in hub.business_keys], ['example_id1', 'example_id2'])
     self.assertEqual([c.name for c in hub.pk], ['example_key'])
+    self.assertEqual([c.name for c in hub.uk], ['example_id1', 'example_id2'])
     self.assertEqual(hub.fks, [])
 
   def create_example_link(self, **properties):
@@ -58,11 +59,12 @@ class TestDBObjects(unittest.TestCase):
     self.assertEqual(link.root_key.name, 'example_l_key')
     self.assertEqual([c.name for c in link.keys], ['example1_key', 'example2_key'])
     self.assertEqual([c.name for c in link.pk], ['example_l_key'])
+    self.assertEqual(link.uk, [])
     self.assertEqual(
-      [([c.name for c in cs], f) for cs, f in link.fks],
+      [fk.names() for fk in link.fks],
       [
-        (['example1_key'], {'table': 'example1_h', 'column_names': ['example1_key']}),
-        (['example2_key'], {'table': 'example2_h', 'column_names': ['example2_key']})
+        (('example_l', ['example1_key']), ('example1_h', ['example1_key'])),
+        (('example_l', ['example2_key']), ('example2_h', ['example2_key']))
       ]
     )
 
@@ -84,9 +86,10 @@ class TestDBObjects(unittest.TestCase):
     self.assertEqual(satellite.key.name, 'example_key')
     self.assertEqual([a.name for a in satellite.attributes], ['attribute1', 'attribute2'])
     self.assertEqual([c.name for c in satellite.pk], ['example_key', 'load_dts'])
+    self.assertEqual(satellite.uk, [])
     self.assertEqual(
-      [([c.name for c in cs], f) for cs, f in satellite.fks], 
-      [(['example_key'], {'table': 'example_h', 'column_names': ['example_key']})]
+      [fk.names() for fk in satellite.fks],
+      [(('example_s', ['example_key']), ('example_h', ['example_key']))]
     )
 
   def create_example_link_satellite(self, **properties):
@@ -107,6 +110,6 @@ class TestDBObjects(unittest.TestCase):
     self.assertEqual([a.name for a in link_satellite.attributes], ['effective_ts'])
     self.assertEqual([c.name for c in link_satellite.pk], ['example_l_key', 'load_dts'])
     self.assertEqual(
-      [([c.name for c in cs], f) for cs, f in link_satellite.fks], 
-      [(['example_l_key'], {'table': 'example_l', 'column_names': ['example_l_key']})]
+      [fk.names() for fk in link_satellite.fks],
+      [(('example_l_s', ['example_l_key']), ('example_l', ['example_l_key']))]
     )
