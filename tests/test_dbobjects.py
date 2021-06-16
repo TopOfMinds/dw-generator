@@ -20,10 +20,10 @@ class TestDBObjects(unittest.TestCase):
     ]
     self.assertEqual(table.columns, expected)
 
-  def create_example_hub(self, **properties):
+  def create_example_hub(self, table_number="", **properties):
     hub = create_typed_table(
-      Table('dv', 'example_h', [
-        Column('example_key', 'text'),
+      Table('dv', f'example{table_number}_h', [
+        Column(f'example{table_number}_key', 'text'),
         Column('example_id1', 'text'),
         Column('example_id2', 'numeric'),
         Column('load_dts', 'numeric'),
@@ -113,3 +113,30 @@ class TestDBObjects(unittest.TestCase):
       [fk.names() for fk in link_satellite.fks],
       [(('example_l_s', ['example_l_key']), ('example_l', ['example_l_key']))]
     )
+
+  def test_link_fk_lookup(self):
+    hub1 = self.create_example_hub("1")
+    hub2 = self.create_example_hub("2")
+    link = self.create_example_link()
+    _ = Schema('dv', [hub1, hub2, link])
+    [fk1, fk2] = link.fks
+    self.assertEqual(fk1.foreign_table, hub1)
+    self.assertEqual(fk1.foreign_columns, [hub1.key])
+    self.assertEqual(fk2.foreign_table, hub2)
+    self.assertEqual(fk2.foreign_columns, [hub2.key])
+
+  def test_satellite_fk_lookup(self):
+    hub = self.create_example_hub()
+    satellite = self.create_example_satellite()
+    _ = Schema('dv', [hub, satellite])
+    [fk] = satellite.fks
+    self.assertEqual(fk.foreign_table, hub)
+    self.assertEqual(fk.foreign_columns, [hub.key])
+
+  def test_link_satellite_fk_lookup(self):
+    link = self.create_example_link()
+    link_satellite = self.create_example_link_satellite()
+    _ = Schema('dv', [link, link_satellite])
+    [fk] = link_satellite.fks
+    self.assertEqual(fk.foreign_table, link)
+    self.assertEqual(fk.foreign_columns, [link.root_key])

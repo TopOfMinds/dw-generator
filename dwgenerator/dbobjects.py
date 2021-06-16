@@ -28,15 +28,30 @@ class Columns(list):
   pass
 
 class ForeignKeyConstraint:
-  def __init__(self, columns, foreign_table_name, foreign_column_names, parent=None):
+  def __init__(self, table, columns, foreign_table_name, foreign_column_names):
+    self.table = table
     self.columns = columns
     self.foreign_table_name = foreign_table_name
     self.foreign_column_names = foreign_column_names
-    self.parent = parent
+
+  @property
+  def column_names(self):
+    return [c.name for c in self.columns]
+
+  @property
+  def foreign_table(self):
+    return self.table.parent[self.foreign_table_name]
+
+  @property
+  def foreign_columns(self):
+    return [
+      c for c in self.foreign_table.columns
+      if c.name in self.foreign_column_names
+    ]
 
   def names(self):
     return (
-      (self.parent.name, [c.name for c in self.columns]),
+      (self.table.name, self.column_names),
       (self.foreign_table_name, self.foreign_column_names)
     )
 
@@ -109,20 +124,20 @@ class Table:
 class Schema:
   def __init__(self, name, tables, path=None, parent=None):
     self.name = name
-    self.tables = tables
+    self.tables = {table.name: table for table in tables}
     self.path = path
     self.parent = parent
-    for table in tables.values():
+    for table in self.tables.values():
       table.parent = self
 
   @classmethod
   def read(cls, path):
     schema = path.stem
     table_paths = path.glob('*.csv')
-    tables = {
-      table_path.stem: create_typed_table(Table.read(table_path))
+    tables = [
+      create_typed_table(Table.read(table_path))
       for table_path in table_paths
-    }
+    ]
     return Schema(schema, tables, path)
 
   def __str__(self):
@@ -137,7 +152,7 @@ class Schema:
 
 class DB:
   def __init__(self, schemas, path=None):
-    self.schemas = schemas
+    self.schemas = {schema.name: schema for schema in schemas}
     self.path = path
     for schema in self.schemas.values():
       schema.parent = self
@@ -145,10 +160,10 @@ class DB:
   @classmethod
   def read(cls, path):
     schema_paths = [d for d in path.iterdir() if d.is_dir()]
-    schemas = {
-      schema_path.stem: Schema.read(schema_path)
+    schemas = [
+      Schema.read(schema_path)
       for schema_path in schema_paths
-    }
+    ]
     return DB(schemas, path)
 
   def __str__(self):
@@ -246,7 +261,7 @@ class Link(DataVaultObject):
   @property
   def fks(self):
     return [
-      ForeignKeyConstraint([key], key.name.replace('_key', '_h'), [key.name], self)
+      ForeignKeyConstraint(self, [key], key.name.replace('_key', '_h'), [key.name])
       for key in self.keys
     ]
 
@@ -286,10 +301,10 @@ class Satellite(DataVaultObject):
   @property
   def fks(self):
     return [ForeignKeyConstraint(
+      self,
       [self.key],
       self.key.name.replace('_l_key', '_l').replace('_key', '_h'),
-      [self.key.name],
-      self
+      [self.key.name]
     )]
 
   def __str__(self):
