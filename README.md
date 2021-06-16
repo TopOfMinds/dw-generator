@@ -1,5 +1,8 @@
 # Create data warehouse DDLs and queries based on patterns
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![buld workflow](https://github.com/TopOfMinds/dw-generator/actions/workflows/python-app.yml/badge.svg)
+
 ## Install
 
 - Install [Python 3](https://www.python.org/downloads/) if you don't have it. Other Python 3 distributions might also work.
