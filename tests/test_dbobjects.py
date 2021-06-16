@@ -68,10 +68,10 @@ class TestDBObjects(unittest.TestCase):
       ]
     )
 
-  def create_example_satellite(self, **properties):
+  def create_example_satellite(self, table_number="", **properties):
     satellite = create_typed_table(
-      Table('dv', 'example_s', [
-        Column('example_key', 'text'),
+      Table('dv', f'example{table_number}_s', [
+        Column(f'example{table_number}_key', 'text'),
         Column('load_dts', 'numeric'),
         Column('attribute1', 'text'),
         Column('attribute2', 'numeric'),
@@ -140,3 +140,39 @@ class TestDBObjects(unittest.TestCase):
     [fk] = link_satellite.fks
     self.assertEqual(fk.foreign_table, link)
     self.assertEqual(fk.foreign_columns, [link.root_key])
+
+  def test_hub_references(self):
+    hub1 = self.create_example_hub("1")
+    hub2 = self.create_example_hub("2")
+    satellite1 = self.create_example_satellite("1")
+    link = self.create_example_link()
+    _ = Schema('dv', [hub1, hub2, satellite1, link])
+    self.assertEqual(hub1.referred_tables(), [])
+    result = hub1.referring_tables()
+    result.sort(key=lambda t: t.name)
+    self.assertEqual(result, [satellite1, link])
+
+  def test_link_references(self):
+    hub1 = self.create_example_hub("1")
+    hub2 = self.create_example_hub("2")
+    link = self.create_example_link()
+    link_satellite = self.create_example_link_satellite()
+    _ = Schema('dv', [hub1, hub2, link, link_satellite])
+    self.assertEqual(link.referred_tables(), [hub1, hub2])
+    self.assertEqual(link.referring_tables(), [link_satellite])
+
+  def test_satellite_references(self):
+    hub = self.create_example_hub()
+    satellite = self.create_example_satellite()
+    _ = Schema('dv', [hub, satellite])
+    self.assertEqual(satellite.referred_tables(), [hub])
+    self.assertEqual(satellite.referring_tables(), [])
+
+  def test_link_satellite_references(self):
+    hub1 = self.create_example_hub("1")
+    hub2 = self.create_example_hub("2")
+    link = self.create_example_link()
+    link_satellite = self.create_example_link_satellite()
+    _ = Schema('dv', [hub1, hub2, link, link_satellite])
+    self.assertEqual(link_satellite.referred_tables(), [link])
+    self.assertEqual(link_satellite.referring_tables(), [])

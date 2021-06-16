@@ -108,6 +108,20 @@ class Table:
   def fks(self):
     return []
 
+  def referred_tables(self):
+    return [fk.foreign_table for fk in self.fks]
+
+  def referring_tables(self):
+    other_tables = [
+      t for t in self.parent.tables.values()
+      if t.name != self.name
+    ]
+    result = [
+      t for t in other_tables
+      if self.name in [rt.name for rt in t.referred_tables()]
+    ]
+    return result
+
   def __str__(self):
     return "{}({})".format(self.full_name, ", ".join(str(c) for c in self.columns))
 
