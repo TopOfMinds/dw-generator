@@ -1,6 +1,7 @@
 import csv, re
 from os.path import join
 from pathlib import PurePath, Path
+from collections import defaultdict
 
 class MetaDataError(Exception):
     pass
@@ -68,6 +69,10 @@ class Table:
     self.properties = properties
     for column in columns:
       column.parent = self
+    self.pk = []
+    self.uk = []
+    self.fks = []
+
   
   @classmethod
   def from_columns(cls, schema_name, table_name, columns, path=None):
@@ -96,31 +101,11 @@ class Table:
   def full_name(self):
     return "{}.{}".format(self.schema, self.name)
 
-  @property
-  def pk(self):
-    return []
-
-  @property
-  def uk(self):
-    return []
-
-  @property
-  def fks(self):
-    return []
-
   def referred_tables(self):
     return [fk.foreign_table for fk in self.fks]
 
   def referring_tables(self):
-    other_tables = [
-      t for t in self.parent.tables.values()
-      if t.name != self.name
-    ]
-    result = [
-      t for t in other_tables
-      if self.name in [rt.name for rt in t.referred_tables()]
-    ]
-    return result
+    return self.parent.referring_tables[self.name]
 
   def __str__(self):
     return "{}({})".format(self.full_name, ", ".join(str(c) for c in self.columns))
@@ -143,6 +128,13 @@ class Schema:
     self.parent = parent
     for table in self.tables.values():
       table.parent = self
+    self.referring_tables = defaultdict(list)
+    self.referred_tables = defaultdict(list)
+    for table in self.tables.values():
+      for fk in table.fks:
+        self.referring_tables[fk.foreign_table_name].append(table)
+        self.referred_tables[table.name].append(fk.foreign_table_name)
+
 
   @classmethod
   def read(cls, path):
@@ -224,6 +216,8 @@ class Hub(DataVaultObject):
   def __init__(self, table):
     super().__init__(table)
     self.key_name = re.sub(r'_h$', '_key', self.name)
+    self.pk = [self.key]
+    self.uk = self.business_keys
 
   @property
   def key(self):
@@ -237,12 +231,18 @@ class Hub(DataVaultObject):
     ]
 
   @property
-  def pk(self):
-    return [self.key]
+  def related_links(self):
+    return [
+      table for table in self.referring_tables()
+      if table.table_type == 'link'
+    ]
 
   @property
-  def uk(self):
-    return self.business_keys
+  def related_satellites(self):
+    return [
+      table for table in self.referring_tables()
+      if table.table_type == 'satellite'
+    ]
 
   def __str__(self):
     return  "{full_name}(key={key}, business_keys=[{business_keys}], load_dts={load_dts}, rec_src={rec_src})".format(
@@ -259,6 +259,11 @@ class Link(DataVaultObject):
   def __init__(self, table):
     super().__init__(table)
     self.root_key_name = self.name + '_key'
+    self.pk = [self.root_key]
+    self.fks = [
+      ForeignKeyConstraint(self, [key], key.name.replace('_key', '_h'), [key.name])
+      for key in self.keys
+    ]
 
   @property
   def root_key(self):
@@ -269,14 +274,17 @@ class Link(DataVaultObject):
     return [c for c in self.columns if c.name.endswith('_key') and c.name != self.root_key_name]
 
   @property
-  def pk(self):
-    return [self.root_key]
+  def related_hubs(self):
+    return [
+      table for table in self.referred_tables()
+      if table.table_type == 'hub'
+    ]
 
   @property
-  def fks(self):
+  def related_link_satellites(self):
     return [
-      ForeignKeyConstraint(self, [key], key.name.replace('_key', '_h'), [key.name])
-      for key in self.keys
+      table for table in self.referring_tables()
+      if table.table_type == 'satellite'
     ]
 
   def __str__(self):
@@ -293,6 +301,17 @@ class Satellite(DataVaultObject):
   column_role_names = DataVaultObject.column_role_names + ['key', 'attributes']
   def __init__(self, table):
     super().__init__(table)
+    if self.key is None:
+      pass
+      # FIXME: warn that the satellite lacks a key
+    else:
+      self.pk = [self.key, self.load_dts]
+      self.fks = [ForeignKeyConstraint(
+        self,
+        [self.key],
+        self.key.name.replace('_l_key', '_l').replace('_key', '_h'),
+        [self.key.name]
+      )]
 
   @property
   def key(self):
@@ -309,17 +328,18 @@ class Satellite(DataVaultObject):
     ]
 
   @property
-  def pk(self):
-    return [self.key, self.load_dts]
+  def related_hub(self):
+    return [
+      table for table in self.referred_tables()
+      if table.table_type == 'hub'
+    ]
 
   @property
-  def fks(self):
-    return [ForeignKeyConstraint(
-      self,
-      [self.key],
-      self.key.name.replace('_l_key', '_l').replace('_key', '_h'),
-      [self.key.name]
-    )]
+  def related_link(self):
+    return [
+      table for table in self.referred_tables()
+      if table.table_type == 'link'
+    ]
 
   def __str__(self):
     return  "{full_name}(key={key}, attributes=[{attributes}], load_dts={load_dts}, rec_src={rec_src})".format(

@@ -151,6 +151,8 @@ class TestDBObjects(unittest.TestCase):
     result = hub1.referring_tables()
     result.sort(key=lambda t: t.name)
     self.assertEqual(result, [satellite1, link])
+    self.assertEqual(hub1.related_links, [link])
+    self.assertEqual(hub1.related_satellites, [satellite1])
 
   def test_link_references(self):
     hub1 = self.create_example_hub("1")
@@ -160,6 +162,8 @@ class TestDBObjects(unittest.TestCase):
     _ = Schema('dv', [hub1, hub2, link, link_satellite])
     self.assertEqual(link.referred_tables(), [hub1, hub2])
     self.assertEqual(link.referring_tables(), [link_satellite])
+    self.assertEqual(link.related_hubs, [hub1, hub2])
+    self.assertEqual(link.related_link_satellites, [link_satellite])
 
   def test_satellite_references(self):
     hub = self.create_example_hub()
@@ -167,6 +171,7 @@ class TestDBObjects(unittest.TestCase):
     _ = Schema('dv', [hub, satellite])
     self.assertEqual(satellite.referred_tables(), [hub])
     self.assertEqual(satellite.referring_tables(), [])
+    self.assertEqual(satellite.related_hub, [hub])
 
   def test_link_satellite_references(self):
     hub1 = self.create_example_hub("1")
@@ -176,3 +181,4 @@ class TestDBObjects(unittest.TestCase):
     _ = Schema('dv', [hub1, hub2, link, link_satellite])
     self.assertEqual(link_satellite.referred_tables(), [link])
     self.assertEqual(link_satellite.referring_tables(), [])
+    self.assertEqual(link_satellite.related_link, [link])
