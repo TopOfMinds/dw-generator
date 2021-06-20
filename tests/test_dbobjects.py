@@ -114,6 +114,26 @@ class TestDBObjects(unittest.TestCase):
       [(('example_l_s', ['example_l_key']), ('example_l', ['example_l_key']))]
     )
 
+  def create_example_version_pointer(self, table1_number, table2_number, **properties):
+    version_pointer = create_typed_table(
+      Table('dv', f'example_{table1_number}_{table2_number}_vp', [
+        Column(f'example{table1_number}_key', 'text'),
+        Column(f'example{table2_number}_key', 'text'),
+        Column(f'example{table2_number}_load_dts', 'numeric'),
+        Column('load_dts', 'numeric'),
+      ], **properties)
+    )
+    version_pointer.check()
+    return version_pointer
+
+  def test_version_pointer_fields(self):
+    vp = self.create_example_version_pointer("1", "2")
+    self.assertEqual(vp.name, 'example_1_2_vp')
+    self.assertEqual(vp.metrics_key.name, 'example1_key')
+    self.assertEqual(vp.context_key.name, 'example2_key')
+    self.assertEqual(vp.context_load_dts.name, 'example2_load_dts')
+    self.assertEqual(vp.load_dts.name, 'load_dts')
+
   def test_link_fk_lookup(self):
     hub1 = self.create_example_hub("1")
     hub2 = self.create_example_hub("2")

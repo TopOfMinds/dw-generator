@@ -56,6 +56,9 @@ class ForeignKeyConstraint:
       (self.foreign_table_name, self.foreign_column_names)
     )
 
+  def __str__(self):
+    return f"ForeignKeyConstraint{self.names()}"
+
 class Table:
   def __init__(self, schema, name, columns, path=None, parent=None, **properties):
     self.schema = schema
@@ -350,6 +353,38 @@ class Satellite(DataVaultObject):
       rec_src=self.rec_src,
     )
 
+class VersionPointer(DataVaultObject):
+  table_type='version_pointer'
+  column_role_names = [
+    DataVaultObject.load_dts_name, 'metrics_key', 'context_key', 'context_load_dts'
+  ]
+
+  def __init__(self, table):
+    super().__init__(table)
+
+  @property
+  def metrics_key(self):
+    try:
+      return [c for c in self.columns if c.name.endswith('_key')][0]
+    except IndexError:
+      return None
+
+  @property
+  def context_key(self):
+    try:
+      return [c for c in self.columns if c.name.endswith('_key')][1]
+    except IndexError:
+      return None
+
+  @property
+  def context_load_dts(self):
+    try:
+      return [c for c in self.columns if c.name.endswith('_load_dts')][0]
+    except IndexError:
+      return None
+
+  def __str__(self):
+    return  f"{self.full_name}(metrics_key={self.metrics_key}, context_key={self.context_key}, context_load_dts={self.context_load_dts}, load_dts={self.load_dts})"
 
 def create_typed_table(table):
   if table.name.endswith('_h'):
@@ -358,5 +393,7 @@ def create_typed_table(table):
     return Link(table)
   elif table.name.endswith('_s'):
     return Satellite(table)
+  elif table.name.endswith('_vp'):
+    return VersionPointer(table)
   else:
     return table
