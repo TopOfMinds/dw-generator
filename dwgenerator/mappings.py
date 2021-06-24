@@ -136,6 +136,13 @@ class Mappings:
     source_tables = [self._table_dict.get(table_name) for table_name in source_table_names]
     return [source_table for source_table in source_tables if source_table]
 
+  def source_table(self, target_table):
+    source_tables = self.source_tables(target_table)
+    if len(source_tables) > 0:
+      return source_tables[0]
+    else:
+      return None
+
   def filter(self, source_table, target_table):
     mappings = (self.table_mappings
                 .from_table(source_table.schema, source_table.name)
@@ -150,7 +157,10 @@ class Mappings:
     if target_column:
       target_table = target_column.parent
       source_column_mappings = self.column_mappings.to_table(target_table.schema, target_table.name)
-      target_column_mappings = source_column_mappings.from_table(source_table.schema, source_table.name)
+      if source_table:
+        target_column_mappings = source_column_mappings.from_table(source_table.schema, source_table.name)
+      else:
+        target_column_mappings = source_column_mappings
       source_maps = target_column_mappings.to_column_list(target_column)
       result = [
         apply_transform(source_map['source'].split(';'), source_map['transformation'], prefix)
@@ -166,6 +176,24 @@ class Mappings:
       return source_columns[0]
     else:
       return None
+
+  def source_column_objects(self, target_column, source_table=None):
+    source_column_mappings = self.column_mappings.to_column(column=target_column)
+    if source_table:
+      source_column_mappings = source_column_mappings.from_table(source_table.schema, source_table.name)
+    result = [
+      self._table_dict[f"{m['src_schema']}.{m['src_table']}"][m['src_column']]
+      for m in source_column_mappings
+    ]
+    return result
+
+  def source_column_object(self, target_column, source_table=None):
+    source_columns = self.source_column_objects(target_column, source_table)
+    if len(source_columns) > 0:
+      return source_columns[0]
+    else:
+      return None
+
 
   def check(self, target_table):
     source_mappings = self.table_mappings.to_table(target_table.schema, target_table.name)
@@ -245,4 +273,10 @@ class Mappings:
       path_.append(current_column)
       seen.add(current_column.full_name)
     return path_
+
+  def link_path(self, vp):
+    link_columns = [c for c in self.path(vp) if c.parent.table_type == 'link']
+    grouped = [list(g) for _, g in groupby(link_columns, lambda c: c.parent.name)]
+    return grouped
+
 

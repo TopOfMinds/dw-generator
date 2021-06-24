@@ -3,82 +3,15 @@ from collections import namedtuple
 
 from dwgenerator.dbobjects import Schema, Table, Column, create_typed_table, Hub, Link, Satellite, MetaDataError, MetaDataWarning
 from dwgenerator.mappings import Mappings, TableMappings, ColumnMappings
-
-TableMapping = namedtuple('TableMapping',
-  'source_schema source_table source_filter target_schema target_table')
-ColumnMapping = namedtuple('ColumnMapping',
-  'src_schema src_table src_column transformation tgt_schema tgt_table tgt_column')
+from .utils import TableMapping, ColumnMapping, create_example_hub, create_example_link, create_example_satellite, create_example_link_satellite, create_example_version_pointer
 
 class TestMappings(unittest.TestCase):
 
-  def create_example_hub(self, table_number="", **properties):
-    hub = create_typed_table(
-      Table('dv', f'example{table_number}_h', [
-        Column(f'example{table_number}_key', 'text'),
-        Column('example_id1', 'text'),
-        Column('example_id2', 'numeric'),
-        Column('load_dts', 'numeric'),
-        Column('rec_src', 'text'),
-      ], **properties)
-    )
-    hub.check()
-    return hub
-
-  def create_example_link(self, table1_number, table2_number, **properties):
-    link = create_typed_table(
-      Table('dv', f'example_{table1_number}_{table2_number}_l', [
-        Column(f'example_{table1_number}_{table2_number}_l_key', 'text'),
-        Column(f'example{table1_number}_key', 'text'),
-        Column(f'example{table2_number}_key', 'text'),
-        Column('load_dts', 'numeric'),
-        Column('rec_src', 'text'),
-      ], **properties)
-    )
-    link.check()
-    return link
-
-  def create_example_satellite(self, table_number="", variation="", **properties):
-    satellite = create_typed_table(
-      Table('dv', f'example{table_number}{variation}_s', [
-        Column(f'example{table_number}_key', 'text'),
-        Column('load_dts', 'numeric'),
-        Column('attribute1', 'text'),
-        Column('attribute2', 'numeric'),
-        Column('rec_src', 'text'),
-      ], **properties)
-    )
-    satellite.check()
-    return satellite
-
-  def create_example_link_satellite(self, table1_number, table2_number, **properties):
-    link_satellite = create_typed_table(
-      Table('dv', f'example_{table1_number}_{table2_number}_l_s', [
-        Column(f'example_{table1_number}_{table2_number}_l_key', 'text'),
-        Column('load_dts', 'numeric'),
-        Column('effective_ts', 'numeric'),
-        Column('rec_src', 'text'),
-      ], **properties)
-    )
-    link_satellite.check()
-    return link_satellite
-
-  def create_example_version_pointer(self, table1_number, table2_number, **properties):
-    version_pointer = create_typed_table(
-      Table('dv', f'example_{table1_number}_{table2_number}_vp', [
-        Column(f'example{table1_number}_m_key', 'text'),
-        Column(f'example{table2_number}_c_key', 'text'),
-        Column(f'example{table2_number}_c_load_dts', 'numeric'),
-        Column('load_dts', 'numeric'),
-      ], **properties)
-    )
-    version_pointer.check()
-    return version_pointer
-
   def test_mappings_vp_0(self):
-    sat1 = self.create_example_satellite("1")
-    hub1 = self.create_example_hub("1")
-    sat2 = self.create_example_satellite("1", "1")
-    vp_1_1 = self.create_example_version_pointer("1", "1")
+    sat1 = create_example_satellite("1")
+    hub1 = create_example_hub("1")
+    sat2 = create_example_satellite("1", "1")
+    vp_1_1 = create_example_version_pointer("1", "1")
     _ = Schema('dv', [sat1, hub1, sat2, vp_1_1])
     # print(schema.referred_tables)
     table_mappings = TableMappings([t._asdict() for t in [
@@ -100,12 +33,12 @@ class TestMappings(unittest.TestCase):
     )
 
   def test_mappings_vp_1(self):
-    sat1 = self.create_example_satellite("1")
-    hub1 = self.create_example_hub("1")
-    link_1_2 = self.create_example_link("1", "2")
-    hub2 = self.create_example_hub("2")
-    sat2 = self.create_example_satellite("2")
-    vp_1_2 = self.create_example_version_pointer("1", "2")
+    sat1 = create_example_satellite("1")
+    hub1 = create_example_hub("1")
+    link_1_2 = create_example_link("1", "2")
+    hub2 = create_example_hub("2")
+    sat2 = create_example_satellite("2")
+    vp_1_2 = create_example_version_pointer("1", "2")
     schema = Schema('dv', [sat1, hub1, link_1_2, hub2, sat2, vp_1_2])
     # print(schema.referred_tables)
     table_mappings = TableMappings([t._asdict() for t in [
@@ -133,15 +66,15 @@ class TestMappings(unittest.TestCase):
     )
 
   def test_mappings_vp_2(self):
-    sat1 = self.create_example_satellite("1")
-    hub1 = self.create_example_hub("1")
-    link_1_2 = self.create_example_link("1", "2")
-    hub2 = self.create_example_hub("2")
-    link_2_3 = self.create_example_link("2", "3")
-    lsat_2_3 = self.create_example_link_satellite("2", "3")
-    hub3 = self.create_example_hub("3")
-    sat3 = self.create_example_satellite("3")
-    vp_1_3 = self.create_example_version_pointer("1", "3")
+    sat1 = create_example_satellite("1")
+    hub1 = create_example_hub("1")
+    link_1_2 = create_example_link("1", "2")
+    hub2 = create_example_hub("2")
+    link_2_3 = create_example_link("2", "3")
+    lsat_2_3 = create_example_link_satellite("2", "3")
+    hub3 = create_example_hub("3")
+    sat3 = create_example_satellite("3")
+    vp_1_3 = create_example_version_pointer("1", "3")
     schema = Schema('dv', [sat1, hub1, link_1_2, hub2, link_2_3, lsat_2_3, hub3, sat3, vp_1_3])
     # print(schema.referred_tables)
     table_mappings = TableMappings([t._asdict() for t in [

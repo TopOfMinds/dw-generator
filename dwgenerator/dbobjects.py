@@ -302,6 +302,7 @@ class Link(DataVaultObject):
 class Satellite(DataVaultObject):
   table_type='satellite'
   column_role_names = DataVaultObject.column_role_names + ['key', 'attributes']
+  effective_ts_name = 'effective_ts'
   def __init__(self, table):
     super().__init__(table)
     if self.key is None:
@@ -327,8 +328,15 @@ class Satellite(DataVaultObject):
   def attributes(self):
     return [
       c for c in self.columns
-      if c.name not in set([self.key.name if self.key else None, self.load_dts_name, self.rec_src_name])
+      if c.name not in set([
+        self.key.name if self.key else None,
+        self.load_dts_name, self.rec_src_name
+      ])
     ]
+
+  @property
+  def effective_ts(self):
+    return self[self.effective_ts_name]
 
   @property
   def related_hub(self):
