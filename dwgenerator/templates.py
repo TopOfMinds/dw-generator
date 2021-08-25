@@ -20,6 +20,10 @@ class Templates:
       lstrip_blocks=True,
     )
 
+  def render_template(self, template_path, **objects):
+    template = self.env.get_template(template_path)
+    return template.render(**objects)
+
   def render(self, target_table, mappings):
     table_type = target_table.table_type
     generate_type = target_table.properties['generate_type']
@@ -32,13 +36,9 @@ class Templates:
     else:
       raise MetaDataError(f"Unknown generate_type={generate_type} for {target_table.name}.")
 
-    templates = [
-      self.env.get_template(template_path)
-      for template_path in template_paths
-    ]
     sqls = [
-      template.render(target_table=target_table, mappings=mappings)
-      for template in templates
+      self.render_template(template_path, target_table=target_table, mappings=mappings)
+      for template_path in template_paths
     ]
     out_paths = [
       Path(target_table.schema) / (target_table.name + f'_{suffix}.sql')

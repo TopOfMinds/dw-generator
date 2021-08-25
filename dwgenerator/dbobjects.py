@@ -10,6 +10,7 @@ class MetaDataWarning(Warning):
     pass
 
 class Column:
+  """Class that describes a column in a DB table."""
   def __init__(self, name, type_, parent=None):
     self.name = name
     self.type = type_
@@ -22,11 +23,18 @@ class Column:
   def __eq__(self, other):
     return isinstance(other, Column) and vars(self) == vars(other)
 
+  def __hash__(self) -> int:
+    return hash((self.name, self.type))
+
+  def __repr__(self) -> str:
+      return f"Column({self.__class__.__name__}{self.name!r}, {self.type!r})"
+
   def __str__(self):
     return "{}: {}".format(self.name, self.type)
 
 class Columns(list):
-  pass
+  def __init__(self, columns):
+    super().__init__(columns)
 
 class ForeignKeyConstraint:
   def __init__(self, table, columns, foreign_table_name, foreign_column_names):
