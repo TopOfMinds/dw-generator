@@ -209,7 +209,7 @@ class TestStandardTemplates(unittest.TestCase):
     self.cur.executescript(ddl)
     result = list(self.cur.execute("PRAGMA db.table_info('customer_h')"))
     expected = [
-      (0, 'customer_key', 'text', 0, None, 0),
+      (0, 'customer_key', 'text', 0, None, 1),
       (1, 'ssn', 'text', 0, None, 0),
       (2, 'load_dts', 'numeric', 0, None, 0),
       (3, 'rec_src', 'text', 0, None, 0)
@@ -247,7 +247,7 @@ class TestStandardTemplates(unittest.TestCase):
     self.cur.executescript(ddl)
     result = list(self.cur.execute("PRAGMA db.table_info('sales_line_customer_l')"))
     expected = [
-      (0, 'sales_line_customer_l_key', 'text', 0, None, 0),
+      (0, 'sales_line_customer_l_key', 'text', 0, None, 1),
       (1, 'sales_line_key', 'text', 0, None, 0),
       (2, 'customer_key', 'text', 0, None, 0),
       (3, 'load_dts', 'numeric', 0, None, 0),
@@ -285,8 +285,8 @@ class TestStandardTemplates(unittest.TestCase):
     self.cur.executescript(ddl)
     result = list(self.cur.execute("PRAGMA db.table_info('customer_s')"))
     expected = [
-      (0, 'customer_key', 'text', 0, None, 0),
-      (1, 'load_dts', 'numeric', 0, None, 0),
+      (0, 'customer_key', 'text', 0, None, 1),
+      (1, 'load_dts', 'numeric', 0, None, 2),
       (2, 'ssn', 'text', 0, None, 0),
       (3, 'name', 'text', 0, None, 0),
       (4, 'rec_src', 'text', 0, None, 0)
