@@ -43,7 +43,7 @@ FROM (
     {% endfor %}
   )
   {% if insert_ %}
-  AS q
+  q
   WHERE
     NOT EXISTS (
       SELECT 1
