@@ -11,4 +11,13 @@ CREATE TABLE {{ target_table.full_name }} (
 {% if target_table.properties.compression == 'true' -%}
 ROW STORE COMPRESS ADVANCED
 {% endif %}
+
+{% if target_table.properties.partition == 'true' -%}
+PARTITION BY RANGE(load_dts)
+INTERVAL (NUMTOYMINTERVAL(1,'MONTH'))
+
+(PARTITION p0 VALUES LESS THAN
+(to_date({{ target_table.properties.partition_p0 }}, 'YYYY-MM-DD'))
+)
+{% endif %}
 ;
