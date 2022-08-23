@@ -7,7 +7,7 @@ v_batch_started TIMESTAMP(9);
 v_load_start_ts TIMESTAMP(9);
 v_load_end_ts TIMESTAMP(9);
 v_batch_id INT;
-v_table_name VARCHAR(40) := '{{  target_table.name }}';
+v_table_name VARCHAR(50) := '{{  target_table.name }}';
 
 BEGIN
 
