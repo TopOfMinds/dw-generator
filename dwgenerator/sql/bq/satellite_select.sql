@@ -12,7 +12,7 @@ FROM (
   {% set source_filter = mappings.filter(source_table, target_table) %}
   {{ union_all() }}
   SELECT
-    {{ mappings.source_column(source_table, target_table.key) }} AS {{ target_table.key.name }}
+    CAST({{ mappings.source_column(source_table, target_table.key) }} AS string) AS {{ target_table.key.name }}
     ,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
     {% for attribute in target_table.attributes %}
     ,{{ mappings.source_column(source_table, attribute) }} AS {{ attribute.name }}

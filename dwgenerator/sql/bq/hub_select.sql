@@ -21,7 +21,7 @@ FROM (
     {% set source_filter = mappings.filter(source_table, target_table) %}
     {{ union_all() }}
     SELECT
-      {{ mappings.source_column(source_table, target_table.key) }} AS {{ target_table.key.name }}
+      CAST({{ mappings.source_column(source_table, target_table.key) }} AS string) AS {{ target_table.key.name }}
       {% for target_business_key in target_table.business_keys %}
       ,{{ mappings.source_column(source_table, target_business_key) }} AS {{ target_business_key.name }}
       {% endfor %}
