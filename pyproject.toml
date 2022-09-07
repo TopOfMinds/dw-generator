@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -17,10 +17,12 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-dynamic = ["dependencies"]
-
-[tool.setuptools.dynamic]
-dependencies = {file="requirements.txt"}
+dependencies = [
+    "click~=8.0.1",
+    "colorama~=0.4.4",
+    "Jinja2~=3.0.1",
+    "MarkupSafe~=2.0.1",
+]
 
 [project.scripts]
 dwgenerator = "dwgenerator.cli:cli"

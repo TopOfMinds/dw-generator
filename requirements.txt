@@ -1,4 +1,0 @@
-click==8.0.1
-colorama==0.4.4
-Jinja2==3.0.1
-MarkupSafe==2.0.1
