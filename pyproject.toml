@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dwgenerator"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="Daniel Fagerstrom" },
 ]
@@ -23,6 +23,8 @@ dependencies = [
     "Jinja2~=3.0.1",
     "MarkupSafe~=2.0.1",
 ]
+
+[tool.setuptools_scm]
 
 [project.scripts]
 dwgenerator = "dwgenerator.cli:cli"
