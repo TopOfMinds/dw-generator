@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dwgenerator"
+version = "0.2.0"
+authors = [
+  { name="Daniel Fagerstrom" },
+]
+description = "Create data warehouse DDLs and queries based on patterns"
+readme = "README.md"
+license = { file="LICENSE.md" }
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file="requirements.txt"}
+
+[project.scripts]
+dwgenerator = "dwgenerator.cli:cli"
+
+[project.urls]
+"Homepage" = "https://github.com/TopOfMinds/dw-generator"
+"Bug Tracker" = "https://github.com/TopOfMinds/dw-generator/issues"
