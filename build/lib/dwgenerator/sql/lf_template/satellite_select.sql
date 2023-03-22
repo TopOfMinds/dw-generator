@@ -31,8 +31,8 @@ FROM (
     {{ and_() }}{{ source_filter }}
     {% endif %}
     {% if insert_ %}
-    {{ and_() }}{{ external_param('start_ts') }} <= {{ mappings.source_column(source_table, target_table.load_dts) }}
-    AND {{ mappings.source_column(source_table, target_table.load_dts) }} < {{ external_param('end_ts') }}
+    {{ and_() }}v_batch_started <= {{ mappings.source_column(source_table, target_table.load_dts) }}
+    AND {{ mappings.source_column(source_table, target_table.load_dts) }} < v_batch_ended
     {%- endif %}
   {% endif %}
   {% endfor %}
