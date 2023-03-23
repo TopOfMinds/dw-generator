@@ -1,6 +1,6 @@
 {% include 'header.sql' %}
 {% from 'external_param.sql' import external_param %}
-{% set source_table_v = mappings.source_tables(target_table) %}
+{% set source_table_v = target_table %}
 
 CREATE or REPLACE PROCEDURE {{ target_table.full_name }}_etl (p_sec INT DEFAULT 604800, p_flg_delete INT DEFAULT 0)
 AS
