@@ -197,13 +197,18 @@ class DataVaultObject(Table):
   table_type='dv'
   load_dts_name = 'load_dts'
   rec_src_name = 'rec_src'
-  column_role_names = [load_dts_name, rec_src_name]
+  batch_id_name = 'batch_id'
+  column_role_names = [load_dts_name, rec_src_name, batch_id_name]
   def __init__(self, table):
     super().__init__(table.schema, table.name, table.columns, table.path, **table.properties)
 
   @property
   def load_dts(self):
     return self[self.load_dts_name]
+
+  @property
+  def batch_id(self):
+    return self[self.batch_id_name]
 
   @property
   def rec_src(self):
@@ -299,12 +304,13 @@ class Link(DataVaultObject):
     ]
 
   def __str__(self):
-    return  "{full_name}(root_key={root_key}, keys=[{keys}], load_dts={load_dts}, rec_src={rec_src})".format(
+    return  "{full_name}(root_key={root_key}, keys=[{keys}], load_dts={load_dts}, rec_src={rec_src}, batch_id={batch_id})".format(
       full_name=self.full_name,
       root_key=self.root_key,
       keys=', '.join(str(c) for c in self.keys),
       load_dts=self.load_dts,
       rec_src=self.rec_src,
+      batch_id=self.batch_id,
     )
 
 class Satellite(DataVaultObject):

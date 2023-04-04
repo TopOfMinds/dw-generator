@@ -39,7 +39,7 @@ FROM {{ source_table.full_name }}
 {% endblock %}
 ;
 
-select count(*)  INTO v_no_of_rows FROM v_table_name WHERE BATCH_ID =  v_batch_id;
+select count(*)  INTO v_no_of_rows FROM {{  target_table.name }} WHERE BATCH_ID =  v_batch_id;
 
 UPDATE dv.batch_log
 SET load_end_ts = CAST( SYSTIMESTAMP AT TIME ZONE 'Europe/Stockholm' AS timestamp),
