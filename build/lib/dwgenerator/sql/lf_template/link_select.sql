@@ -6,6 +6,7 @@ SELECT
   {% endfor %}
   ,{{ target_table.load_dts.name }}
   ,{{ target_table.rec_src.name }}
+  ,{{ target_table.batch_id.name }}
 FROM (
   SELECT
     {{ target_table.root_key.name }}
@@ -14,6 +15,7 @@ FROM (
     {% endfor %}
     ,{{ target_table.load_dts.name }}
     ,{{ target_table.rec_src.name }}
+	,{{ target_table.batch_id.name }}
     ,row_number() over(PARTITION BY {{ target_table.root_key.name }} ORDER BY {{ target_table.load_dts.name }} asc) rn
   FROM (
     {% set union_all = joiner("UNION ALL") %}
@@ -28,6 +30,7 @@ FROM (
       {% endfor %}
       ,{{ mappings.source_column(source_table, target_table.load_dts) }} AS {{ target_table.load_dts.name }}
       ,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
+	  ,{{ mappings.source_column(source_table, target_table.batch_id) }} AS {{ target_table.batch_id.name }}
     FROM {{ source_table.full_name }}
     {% if source_filter or insert_ %}
     {% set and_ = joiner("AND ") %}

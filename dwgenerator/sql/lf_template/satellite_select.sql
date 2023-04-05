@@ -9,6 +9,7 @@ SELECT
   {% for attribute in target_table.attributes %}
   ,{{ attribute.name }}
   {% endfor %}
+  ,row_number() over(PARTITION BY {{ target_table.key.name }}, {{ target_table.load_dts.name }} ORDER BY {{ target_table.window_sort.name }} desc) rn
   ,{{ target_table.rec_src.name }}
 FROM (
   {%- set union_all = joiner("UNION ALL") %}
@@ -62,3 +63,4 @@ GROUP BY
   {% endfor %}
   ,{{ target_table.rec_src.name }}
 {% endif %}
+WHERE rn = 1

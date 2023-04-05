@@ -243,7 +243,7 @@ class Hub(DataVaultObject):
   def business_keys(self):
     return [
       c for c in self.columns 
-      if c.name not in set([self.key_name, self.load_dts_name, self.rec_src_name])
+      if c.name not in set([self.key_name, self.load_dts_name, self.rec_src_name, self.batch_id_name])
     ]
 
   @property
@@ -261,12 +261,13 @@ class Hub(DataVaultObject):
     ]
 
   def __str__(self):
-    return  "{full_name}(key={key}, business_keys=[{business_keys}], load_dts={load_dts}, rec_src={rec_src})".format(
+    return  "{full_name}(key={key}, business_keys=[{business_keys}], load_dts={load_dts}, rec_src={rec_src}, batch_id={batch_id})".format(
       full_name=self.full_name,
       key=self.key,
       business_keys=', '.join(str(c) for c in self.business_keys),
       load_dts=self.load_dts,
       rec_src=self.rec_src,
+      batch_id=self.batch_id,
     )
 
 class Link(DataVaultObject):
