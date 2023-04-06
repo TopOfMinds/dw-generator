@@ -198,8 +198,7 @@ class DataVaultObject(Table):
   load_dts_name = 'load_dts'
   rec_src_name = 'rec_src'
   batch_id_name = 'batch_id'
-  window_sort_name = 'int_pos'
-  column_role_names = [load_dts_name, rec_src_name, batch_id_name,window_sort_name]
+  column_role_names = [load_dts_name, rec_src_name, batch_id_name]
   def __init__(self, table):
     super().__init__(table.schema, table.name, table.columns, table.path, **table.properties)
 
@@ -214,10 +213,6 @@ class DataVaultObject(Table):
   @property
   def rec_src(self):
     return self[self.rec_src_name]
-
-  @property
-  def window_sort(self):
-    return self[self.window_sort_name]    
 
   def check(self):
     for column_name in self.column_role_names:
@@ -373,13 +368,12 @@ class Satellite(DataVaultObject):
     ]
 
   def __str__(self):
-    return  "{full_name}(key={key}, attributes=[{attributes}], load_dts={load_dts}, rec_src={rec_src}, window_sort={window_sort})".format(
+    return  "{full_name}(key={key}, attributes=[{attributes}], load_dts={load_dts}, rec_src={rec_src})".format(
       full_name=self.full_name,
       key=self.key,
       attributes=', '.join(str(c) for c in self.attributes),
       load_dts=self.load_dts,
       rec_src=self.rec_src,
-      window_sort=self.window_sort,
     )
 
 class VersionPointer(DataVaultObject):

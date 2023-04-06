@@ -1,15 +1,10 @@
 {% from 'external_param.sql' import external_param %}
 SELECT
   {{ target_table.key.name }}
-  {% if no_deduplication_ %}
   ,{{ target_table.load_dts.name }}
-  {% else %}
-  ,max({{ target_table.load_dts.name }}) AS {{ target_table.load_dts.name }}
-  {% endif %}
-  {% for attribute in target_table.attributes %}
+   {% for attribute in target_table.attributes %}
   ,{{ attribute.name }}
   {% endfor %}
-  ,row_number() over(PARTITION BY {{ target_table.key.name }}, {{ target_table.load_dts.name }} ORDER BY {{ target_table.window_sort.name }} desc) rn
   ,{{ target_table.rec_src.name }}
 FROM (
   {%- set union_all = joiner("UNION ALL") %}
@@ -23,6 +18,7 @@ FROM (
     ,{{ mappings.source_column(source_table, attribute) }} AS {{ attribute.name }}
     {% endfor %}
     ,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
+    ,row_number() over(PARTITION BY {{ target_table.key.name }}, {{ target_table.load_dts.name }} ORDER BY {{ external_param('window_sort') }} desc) rn 
   FROM
     {{ source_table.full_name }}
   {% if source_filter or insert_ %}
@@ -38,29 +34,13 @@ FROM (
   {% endif %}
   {% endfor %}
 )
-{% if insert_ %}
+
 q
 WHERE
   NOT EXISTS (
     SELECT 1
     FROM {{ target_table.full_name }} t
     WHERE t.{{ target_table.key.name }} = q.{{ target_table.key.name }}
-    {% if no_deduplication_ %}
     AND t.{{target_table.load_dts.name }} = q.{{target_table.load_dts.name }}
-    {% else %}
-      {% for attribute in target_table.attributes %}
-      AND COALESCE(TO_CHAR(t.{{ attribute.name }}), '#') = COALESCE(TO_CHAR(q.{{ attribute.name }}), '#')
-      {% endfor %}
-    {% endif %}
   )
-{% endif %}
-{% if no_deduplication_ %}
-{% else  -%}
-GROUP BY
-  {{ target_table.key.name }}
-  {% for attribute in target_table.attributes %}
-  ,{{ attribute.name }}
-  {% endfor %}
-  ,{{ target_table.rec_src.name }}
-{% endif %}
-WHERE rn = 1
+AND q.rn = 1
