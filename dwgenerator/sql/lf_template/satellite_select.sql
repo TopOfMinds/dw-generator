@@ -18,7 +18,7 @@ FROM (
     ,{{ mappings.source_column(source_table, attribute) }} AS {{ attribute.name }}
     {% endfor %}
     ,{{ mappings.source_column(source_table, target_table.rec_src) }} AS {{ target_table.rec_src.name }}
-    ,row_number() over(PARTITION BY {{ target_table.key.name }}, {{ target_table.load_dts.name }} ORDER BY {{ external_param('window_sort') }} desc) rn 
+    ,row_number() over(PARTITION BY {{ mappings.source_column(source_table, target_table.key) }}, {{ mappings.source_column(source_table, target_table.load_dts) }} ORDER BY {{ external_param('window_sort') }} desc) rn 
   FROM
     {{ source_table.full_name }}
   {% if source_filter or insert_ %}
